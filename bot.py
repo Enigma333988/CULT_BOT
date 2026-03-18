@@ -12,13 +12,39 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv("TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
-ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", CHAT_ID or "")
-PROXY = os.getenv("PROXY")
-TIMEZONE_NAME = os.getenv("TIMEZONE", "UTC")
-QUEUE_FILE = Path(os.getenv("QUEUE_FILE", "queue.json"))
-STATE_FILE = Path(os.getenv("STATE_FILE", "bot_state.json"))
+def get_env_value(name: str, default: str | None = None) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return default
+
+    cleaned = value.strip()
+    return cleaned or default
+
+
+def resolve_runtime_file(env_name: str, default_filename: str) -> Path:
+    raw_value = get_env_value(env_name, default_filename)
+    path = Path(raw_value)
+
+    if path.exists() and path.is_dir():
+        raise ValueError(
+            f"❌ {env_name} должен указывать на JSON-файл, а не на папку: {path}"
+        )
+
+    if path.name in {"", ".", ".."}:
+        raise ValueError(
+            f"❌ {env_name} должен указывать на файл, например {default_filename}"
+        )
+
+    return path
+
+
+TOKEN = get_env_value("TOKEN")
+CHAT_ID = get_env_value("CHAT_ID")
+ADMIN_CHAT_ID = get_env_value("ADMIN_CHAT_ID", CHAT_ID or "")
+PROXY = get_env_value("PROXY")
+TIMEZONE_NAME = get_env_value("TIMEZONE", "UTC")
+QUEUE_FILE = resolve_runtime_file("QUEUE_FILE", "queue.json")
+STATE_FILE = resolve_runtime_file("STATE_FILE", "bot_state.json")
 ALLOWED_PROXY_SCHEMES = {"http", "https", "socks5", "socks5h"}
 POLL_TIMEOUT_SECONDS = 10
 REQUEST_TIMEOUT_SECONDS = 20
@@ -87,7 +113,15 @@ state = load_json(STATE_FILE, {"last_update_id": None})
 queue: list[dict[str, Any]] = load_json(QUEUE_FILE, [])
 
 
+def ensure_parent_dir(path: Path) -> None:
+    parent = path.parent
+    if parent != Path("") and not parent.exists():
+        parent.mkdir(parents=True, exist_ok=True)
+
+
+
 def save_state() -> None:
+    ensure_parent_dir(STATE_FILE)
     STATE_FILE.write_text(
         json.dumps(state, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -96,6 +130,7 @@ def save_state() -> None:
 
 
 def save_queue() -> None:
+    ensure_parent_dir(QUEUE_FILE)
     QUEUE_FILE.write_text(
         json.dumps(queue, ensure_ascii=False, indent=2),
         encoding="utf-8",
