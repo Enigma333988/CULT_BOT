@@ -2,44 +2,66 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# загрузка .env
+# Загружаем переменные из .env
 load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 PROXY = os.getenv("PROXY")
 
+# Проверки
+if not TOKEN:
+    raise ValueError("❌ Не найден TOKEN в .env")
+
+if not CHAT_ID:
+    raise ValueError("❌ Не найден CHAT_ID в .env")
+
+# Создаём сессию
 session = requests.Session()
 session.trust_env = False
 
-proxies = {
-    "http": PROXY,
-    "https": PROXY,
-}
-
+# URL Telegram API
 url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
+print("🤖 Бот запущен. Вводи сообщение:")
+print("Для выхода: exit или q\n")
+
 while True:
-    text = input("Введите сообщение: ").strip()
-    
+    text = input(">> ").strip()
+
     if not text:
         continue
+
     if text.lower() in ["exit", "q"]:
+        print("👋 Выход...")
         break
 
     try:
-        response = session.post(
-            url,
-            data={
+        request_kwargs = {
+            "data": {
                 "chat_id": CHAT_ID,
                 "text": text
             },
-            proxies=proxies,
-            timeout=20,
-        )
+            "timeout": 20,
+        }
 
-        print(response.status_code)
-        print(response.text)
+        # Добавляем прокси только если он есть
+        if PROXY:
+            request_kwargs["proxies"] = {
+                "http": PROXY,
+                "https": PROXY,
+            }
+
+        response = session.post(url, **request_kwargs)
+
+        print(f"📡 Status: {response.status_code}")
+        print(f"📨 Response: {response.text}\n")
+
+    except requests.exceptions.Timeout:
+        print("⏳ Таймаут запроса\n")
+
+    except requests.exceptions.ConnectionError:
+        print("🌐 Ошибка соединения (проверь интернет или прокси)\n")
 
     except Exception as e:
-        print("Ошибка:", e)
+        print(f"❌ Ошибка: {e}\n")
