@@ -1,18 +1,102 @@
-# CULT_BOT
+# CULT_BOT 🤖
 
-Telegram bot in Python.
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
-## Files
-- `bot.py` — main bot code
-- `.env.example` — template for environment variables
+Telegram-бот на Python с использованием переменных окружения.
 
-## Required environment variables
-- `TOKEN` — Telegram bot token
-- `CHAT_ID` — target chat id
-- `PROXY` — optional proxy
+---
 
-## Setup
-1. Copy `.env.example` to `.env`
-2. Fill in real values
-3. Install dependencies
-4. Run `bot.py`
+## 📦 Возможности
+
+* Работа с Telegram Bot API
+* Использование `.env` для хранения секретов
+* Готов к деплою (Render / Railway / VPS)
+
+---
+
+## 📁 Структура проекта
+
+```
+CULT_BOT/
+├── bot.py
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+---
+
+## ⚙️ Настройка
+
+### 1. Создай `.env`
+
+```bash
+cp .env.example .env
+```
+
+### 2. Заполни данные
+
+```env
+TOKEN=your_bot_token_here
+CHAT_ID=your_chat_id_here
+PROXY=
+```
+
+---
+
+## 🚀 Запуск
+
+```bash
+python bot.py
+```
+
+---
+
+## 📚 Зависимости
+
+Установить все зависимости:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 🔐 Безопасность
+
+* `.env` не должен попадать в GitHub
+* Никогда не публикуй `TOKEN`
+* Используй `.env.example` как шаблон
+
+---
+
+## 🧠 Как это работает
+
+Бот берёт данные из переменных окружения:
+
+* `TOKEN` — токен бота
+* `CHAT_ID` — ID чата
+* `PROXY` — прокси (опционально)
+
+---
+
+## ☁️ Деплой
+
+Можно запустить на:
+
+* Railway
+* Render
+* VPS
+
+Просто добавь переменные окружения в настройках сервиса.
+
+---
+
+## 📌 Примечание
+
+Если бот не работает:
+
+* проверь `.env`
+* проверь токен
+* проверь интернет / прокси
