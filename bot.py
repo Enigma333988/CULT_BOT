@@ -1,5 +1,7 @@
-import requests
 import os
+from urllib.parse import urlparse
+
+import requests
 from dotenv import load_dotenv
 
 # Загружаем переменные из .env
@@ -8,6 +10,8 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 PROXY = os.getenv("PROXY")
+ALLOWED_PROXY_SCHEMES = {"http", "https", "socks5", "socks5h"}
+
 
 # Проверки
 if not TOKEN:
@@ -15,6 +19,14 @@ if not TOKEN:
 
 if not CHAT_ID:
     raise ValueError("❌ Не найден CHAT_ID в .env")
+
+if PROXY:
+    parsed_proxy = urlparse(PROXY)
+    if parsed_proxy.scheme.lower() not in ALLOWED_PROXY_SCHEMES:
+        raise ValueError(
+            "❌ Некорректная схема PROXY. Используй http://, https://, socks5:// или socks5h://"
+        )
+
 
 # Создаём сессию
 session = requests.Session()
@@ -27,7 +39,11 @@ print("🤖 Бот запущен. Вводи сообщение:")
 print("Для выхода: exit или q\n")
 
 while True:
-    text = input(">> ").strip()
+    try:
+        text = input(">> ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\n👋 Выход...")
+        break
 
     if not text:
         continue
@@ -40,9 +56,10 @@ while True:
         request_kwargs = {
             "data": {
                 "chat_id": CHAT_ID,
-                "text": text
+                "text": text,
             },
             "timeout": 20,
+            "allow_redirects": False,
         }
 
         # Добавляем прокси только если он есть
@@ -53,15 +70,32 @@ while True:
             }
 
         response = session.post(url, **request_kwargs)
+        response.raise_for_status()
 
-        print(f"📡 Status: {response.status_code}")
-        print(f"📨 Response: {response.text}\n")
+        try:
+            payload = response.json()
+        except ValueError:
+            print(f"📡 Status: {response.status_code}")
+            print("⚠️ Telegram вернул не-JSON ответ\n")
+            continue
+
+        if payload.get("ok"):
+            print(f"✅ Сообщение отправлено. Status: {response.status_code}\n")
+        else:
+            description = payload.get("description", "Неизвестная ошибка Telegram API")
+            print(f"⚠️ Telegram API вернул ошибку: {description}\n")
 
     except requests.exceptions.Timeout:
         print("⏳ Таймаут запроса\n")
 
+    except requests.exceptions.TooManyRedirects:
+        print("⚠️ Обнаружено слишком много редиректов, запрос отменён\n")
+
+    except requests.exceptions.HTTPError as exc:
+        print(f"⚠️ HTTP ошибка: {exc.response.status_code}\n")
+
     except requests.exceptions.ConnectionError:
         print("🌐 Ошибка соединения (проверь интернет или прокси)\n")
 
-    except Exception as e:
-        print(f"❌ Ошибка: {e}\n")
+    except requests.exceptions.RequestException as exc:
+        print(f"❌ Ошибка запроса: {exc}\n")
