@@ -733,6 +733,10 @@ def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     }
 
 
+def update_order_status(order: dict[str, Any], status_key: str) -> None:
+    order["status"] = status_key
+    order["updated_at"] = now_utc_iso()
+    save_orders()
 
 def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
@@ -1178,8 +1182,9 @@ def handle_text_message(chat_id: int, text: str) -> None:
             ),
             reply_markup=build_admin_order_keyboard(order),
         )
+        clear_conversation(chat_id_str)
         send_message(
-            str(chat_id),
+            chat_id_str,
             (
                 "Готовый текст для клиента:\n"
                 f"Здравствуйте! Это персональная ссылка для отслеживания заказа #{order['id']} «{order['title']}».\n"
