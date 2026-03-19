@@ -3,7 +3,7 @@ import os
 import re
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -48,6 +48,7 @@ PROXY = get_env_value("PROXY")
 TIMEZONE_NAME = get_env_value("TIMEZONE", "UTC")
 ORDERS_FILE = resolve_runtime_file("ORDERS_FILE", "orders.json")
 STATE_FILE = resolve_runtime_file("STATE_FILE", "bot_state.json")
+ARCHIVE_DIR = Path(get_env_value("ARCHIVE_DIR", "archive"))
 ALLOWED_PROXY_SCHEMES = {"http", "https", "socks5", "socks5h"}
 POLL_TIMEOUT_SECONDS = 10
 REQUEST_TIMEOUT_SECONDS = 20
@@ -66,7 +67,7 @@ STATUS_LABELS = {
     "painting": "Покраска",
     "assembly": "Сборка",
     "ready": "Заказ готов",
-    "ready_waiting_delivery": "Изготовлено. Ожидание доставки.",
+    "awaiting_delivery": "Ожидание доставки",
     "in_transit": "В пути",
     "completed": "Завершён",
 }
@@ -78,7 +79,21 @@ BASE_STATUS_KEYS = [
     "assembly",
     "ready",
 ]
-DELIVERY_EXTRA_STATUS_KEYS = ["ready_waiting_delivery", "in_transit"]
+DELIVERY_EXTRA_STATUS_KEYS = ["awaiting_delivery", "in_transit"]
+RUSSIAN_MONTHS = {
+    "января": 1,
+    "февраля": 2,
+    "марта": 3,
+    "апреля": 4,
+    "мая": 5,
+    "июня": 6,
+    "июля": 7,
+    "августа": 8,
+    "сентября": 9,
+    "октября": 10,
+    "ноября": 11,
+    "декабря": 12,
+}
 
 if not TOKEN:
     raise ValueError("❌ Не найден TOKEN в .env")
@@ -150,6 +165,11 @@ def ensure_parent_dir(path: Path) -> None:
 
 
 
+def ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+
+
+
 def save_state() -> None:
     ensure_parent_dir(STATE_FILE)
     STATE_FILE.write_text(
@@ -168,6 +188,58 @@ def save_orders() -> None:
 
 
 
+def parse_rubles(raw_value: str | int) -> int:
+    if isinstance(raw_value, int):
+        return max(raw_value, 0)
+    cleaned = re.sub(r"(руб\.?|р\.?|₽|\s|[.,])", "", str(raw_value).lower())
+    if not cleaned.isdigit():
+        raise ValueError("Укажи сумму в рублях числом, например 21000.")
+    return int(cleaned)
+
+
+
+def get_timezone_label() -> str:
+    now_local = datetime.now(LOCAL_TZ)
+    offset = now_local.utcoffset() or timedelta(0)
+    total_minutes = int(offset.total_seconds() // 60)
+    sign = "+" if total_minutes >= 0 else "-"
+    total_minutes = abs(total_minutes)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"UTC{sign}{hours:02d}:{minutes:02d}"
+
+
+def migrate_order(order: dict[str, Any]) -> dict[str, Any]:
+    migrated = dict(order)
+    if migrated.get("status") == "ready_waiting_delivery":
+        migrated["status"] = "awaiting_delivery"
+
+    total_price = migrated.get("total_price")
+    if total_price is None:
+        raw_price = migrated.get("price", "0")
+        total_price = parse_rubles(raw_price)
+    migrated["total_price"] = total_price
+    migrated["price"] = f"{total_price:,}".replace(",", ".") + " ₽"
+
+    paid_amount = migrated.get("paid_amount")
+    if paid_amount is None:
+        payment_percent = int(migrated.get("payment_percent", 0) or 0)
+        paid_amount = round(total_price * payment_percent / 100)
+    migrated["paid_amount"] = max(0, min(int(paid_amount), total_price))
+
+    migrated.setdefault("notes", "")
+    migrated.setdefault("customer_chat_id", None)
+    migrated.setdefault("completed_at", None)
+    migrated.setdefault("updated_at", migrated.get("created_at", now_utc_iso()))
+    migrated.setdefault("delivery_planned_for", None)
+    migrated.setdefault("history", [])
+    return migrated
+
+
+orders = [migrate_order(order) for order in orders]
+state.setdefault("next_order_id", max((item["id"] for item in orders), default=0) + 1)
+
+
+
 def json_dumps(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
@@ -179,6 +251,7 @@ def send_message(
     *,
     reply_markup: dict[str, Any] | None = None,
     disable_web_page_preview: bool = True,
+    parse_mode: str | None = None,
 ) -> None:
     payload: dict[str, Any] = {
         "chat_id": chat_id,
@@ -187,6 +260,8 @@ def send_message(
     }
     if reply_markup:
         payload["reply_markup"] = json_dumps(reply_markup)
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     api_request("sendMessage", data=payload)
 
 
@@ -229,7 +304,7 @@ def format_local_time(iso_timestamp: str | None) -> str:
         return "—"
     dt_utc = datetime.fromisoformat(iso_timestamp)
     dt_local = dt_utc.astimezone(LOCAL_TZ)
-    return dt_local.strftime("%Y-%m-%d %H:%M %Z")
+    return f"{dt_local.strftime('%Y-%m-%d %H:%M')} {get_timezone_label()}"
 
 
 
@@ -249,7 +324,10 @@ def clear_conversation(chat_id: str) -> None:
 
 
 def next_order_id() -> int:
-    return max((item["id"] for item in orders), default=0) + 1
+    order_id = int(state.get("next_order_id", max((item["id"] for item in orders), default=0) + 1))
+    state["next_order_id"] = order_id + 1
+    save_state()
+    return order_id
 
 
 
@@ -264,7 +342,8 @@ def generate_order_token() -> str:
 def find_orders_for_customer(chat_id: str) -> list[dict[str, Any]]:
     return sorted(
         [order for order in orders if order.get("customer_chat_id") == chat_id],
-        key=lambda item: item["created_at"],
+        key=lambda item: item["id"],
+        reverse=True,
     )
 
 
@@ -297,11 +376,119 @@ def normalize_price(raw_value: str) -> str:
     return cleaned
 
 
+def calculate_payment_percent(order: dict[str, Any]) -> int:
+    total_price = max(order["total_price"], 1)
+    return round(order["paid_amount"] * 100 / total_price)
+
+
+def get_paid_text(order: dict[str, Any]) -> str:
+    return (
+        f"{calculate_payment_percent(order)}% "
+        f"({format_price(order['paid_amount'])} из {format_price(order['total_price'])})"
+    )
+
+
 def format_order_link(token: str) -> str:
     username = bot_profile.get("username")
     if not username:
         return f"Токен заказа: {token}"
     return f"https://t.me/{username}?start=order_{token}"
+
+
+def archive_file_path(order_id: int) -> Path:
+    return ARCHIVE_DIR / f"order_{order_id:05d}.txt"
+
+
+def append_history(order: dict[str, Any], text: str) -> None:
+    order.setdefault("history", []).append(
+        {
+            "timestamp": now_utc_iso(),
+            "text": text,
+        }
+    )
+
+
+def write_order_archive(order: dict[str, Any], lifecycle_state: str) -> None:
+    ensure_dir(ARCHIVE_DIR)
+    history_lines = order.get("history", [])
+    lines = [
+        f"Заказ #{order['id']}",
+        f"Состояние: {lifecycle_state}",
+        f"Наименование: {order['title']}",
+        f"Цена: {format_price(order['total_price'])}",
+        f"Оплачено: {get_paid_text(order)}",
+        f"Статус: {get_status_label(order['status'])}",
+        f"Доставка: {'Да' if order['has_delivery'] else 'Нет'}",
+        f"Создан: {format_local_time(order['created_at'])}",
+        f"Обновлён: {format_local_time(order.get('updated_at'))}",
+        f"Завершён: {format_local_time(order.get('completed_at'))}",
+        f"План доставки: {order.get('delivery_planned_for') or '—'}",
+        f"Примечание: {order.get('notes') or '—'}",
+        "",
+        "История:",
+    ]
+    if history_lines:
+        for item in history_lines:
+            lines.append(f"- {format_local_time(item['timestamp'])}: {item['text']}")
+    else:
+        lines.append("- История пока пустая.")
+    lines.append("")
+    lines.append("DATA_JSON:")
+    lines.append(
+        json.dumps(
+            {
+                "id": order["id"],
+                "created_at": order["created_at"],
+                "updated_at": order.get("updated_at"),
+                "completed_at": order.get("completed_at"),
+                "status": order["status"],
+                "lifecycle_state": lifecycle_state,
+                "title": order["title"],
+                "total_price": order["total_price"],
+                "paid_amount": order["paid_amount"],
+                "has_delivery": order["has_delivery"],
+                "delivery_planned_for": order.get("delivery_planned_for"),
+                "notes": order.get("notes", ""),
+                "customer_chat_id": order.get("customer_chat_id"),
+                "history": history_lines,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    archive_file_path(order["id"]).write_text("\n".join(lines), encoding="utf-8")
+
+
+def persist_order(order: dict[str, Any], lifecycle_state: str = "active") -> None:
+    order["price"] = format_price(order["total_price"])
+    save_orders()
+    write_order_archive(order, lifecycle_state)
+
+
+def load_archived_orders() -> list[dict[str, Any]]:
+    ensure_dir(ARCHIVE_DIR)
+    archived_orders: list[dict[str, Any]] = []
+    for file in sorted(ARCHIVE_DIR.glob("order_*.txt")):
+        try:
+            content = file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        marker = "\nDATA_JSON:\n"
+        if marker not in content:
+            continue
+        payload = content.split(marker, maxsplit=1)[1]
+        try:
+            archived_orders.append(json.loads(payload))
+        except json.JSONDecodeError:
+            continue
+    return archived_orders
+
+
+def sync_archives() -> None:
+    ensure_dir(ARCHIVE_DIR)
+    for order in orders:
+        lifecycle_state = "completed" if order["status"] == "completed" else "active"
+        write_order_archive(order, lifecycle_state)
 
 
 
@@ -324,9 +511,8 @@ def find_order_by_token(token: str) -> dict[str, Any] | None:
 def create_order(
     *,
     title: str,
-    price: str,
-    payment_percent: int,
-    status_key: str,
+    total_price: int,
+    paid_amount: int,
     has_delivery: bool,
     notes: str,
 ) -> dict[str, Any]:
@@ -334,53 +520,74 @@ def create_order(
         "id": next_order_id(),
         "token": generate_order_token(),
         "title": title,
-        "price": price,
-        "payment_percent": payment_percent,
-        "status": status_key,
+        "price": format_price(total_price),
+        "total_price": total_price,
+        "paid_amount": max(0, min(paid_amount, total_price)),
+        "status": "awaiting",
         "has_delivery": has_delivery,
         "notes": notes,
         "created_at": now_utc_iso(),
         "updated_at": now_utc_iso(),
         "completed_at": None,
         "customer_chat_id": None,
+        "delivery_planned_for": None,
+        "history": [],
     }
+    append_history(order, "Заказ создан.")
     orders.append(order)
-    save_orders()
+    persist_order(order)
     return order
 
 
 
 def update_order_status(order: dict[str, Any], status_key: str) -> None:
     order["status"] = status_key
+    if status_key != "awaiting_delivery":
+        order["delivery_planned_for"] = None
     order["updated_at"] = now_utc_iso()
-    save_orders()
-
-def set_conversation(chat_id: str, step: str, **extra: Any) -> None:
-    conversation_state[chat_id] = {"step": step, **extra}
+    append_history(order, f"Статус изменён на «{get_status_label(status_key)}».")
+    persist_order(order)
 
 
-
-def clear_conversation(chat_id: str) -> None:
-    conversation_state.pop(chat_id, None)
-
-
-
-def next_order_id() -> int:
-    return max((item["id"] for item in orders), default=0) + 1
+def set_delivery_schedule(order: dict[str, Any], schedule_text: str) -> None:
+    order["status"] = "awaiting_delivery"
+    order["delivery_planned_for"] = schedule_text
+    order["updated_at"] = now_utc_iso()
+    append_history(order, f"Доставка запланирована на {schedule_text}.")
+    persist_order(order)
 
 
+def update_delivery_flag(order: dict[str, Any], has_delivery: bool) -> None:
+    order["has_delivery"] = has_delivery
+    if not has_delivery and order.get("status") in DELIVERY_EXTRA_STATUS_KEYS:
+        order["status"] = "ready"
+        order["delivery_planned_for"] = None
+    order["updated_at"] = now_utc_iso()
+    append_history(order, f"Доставка изменена: {'Да' if has_delivery else 'Нет'}")
+    persist_order(order)
 
-def generate_order_token() -> str:
-    existing_tokens = {item["token"] for item in orders}
-    while True:
-        token = secrets.token_urlsafe(8)
-        if token not in existing_tokens:
-            return token
+
+def add_payment(order: dict[str, Any], amount: int) -> None:
+    order["paid_amount"] = min(order["total_price"], order["paid_amount"] + amount)
+    order["updated_at"] = now_utc_iso()
+    append_history(order, f"Получена доплата: {format_price(amount)}.")
+    persist_order(order)
+
+
+def mark_fully_paid(order: dict[str, Any]) -> None:
+    order["paid_amount"] = order["total_price"]
+    order["updated_at"] = now_utc_iso()
+    append_history(order, "Заказ оплачен полностью.")
+    persist_order(order)
+
 
 
 def delete_order(order_id: int) -> bool:
     for index, order in enumerate(orders):
         if order["id"] == order_id:
+            order["updated_at"] = now_utc_iso()
+            append_history(order, "Заказ удалён из активного интерфейса.")
+            write_order_archive(order, "deleted")
             del orders[index]
             save_orders()
             return True
@@ -392,7 +599,8 @@ def complete_order(order: dict[str, Any]) -> None:
     order["status"] = "completed"
     order["completed_at"] = now_utc_iso()
     order["updated_at"] = now_utc_iso()
-    save_orders()
+    append_history(order, "Заказ завершён.")
+    persist_order(order, "completed")
 
 
 
@@ -421,14 +629,22 @@ def build_customer_orders_text(chat_id: str) -> str:
     if not customer_orders:
         return "У вас пока нет привязанных заказов. Откройте персональную ссылку, которую вам отправил менеджер."
 
-    lines = ["📦 Ваши заказы:"]
+    total_sum = sum(order["total_price"] for order in customer_orders)
+    total_paid = sum(order["paid_amount"] for order in customer_orders)
+    lines = [
+        "📦 Ваши заказы:",
+        f"Всего заказов: {len(customer_orders)}",
+        f"Общая сумма: {format_price(total_sum)}",
+        f"Оплачено суммарно: {format_price(total_paid)}",
+    ]
     for order in customer_orders:
         lines.append(
             "\n".join(
                 [
                     f"#{order['id']} • {order['title']}",
                     f"Статус: {get_status_label(order['status'])}",
-                    f"Цена: {order['price']}",
+                    f"Цена: {format_price(order['total_price'])}",
+                    f"Оплачено: {get_paid_text(order)}",
                     f"Создан: {format_local_time(order['created_at'])}",
                 ]
             )
@@ -473,12 +689,26 @@ def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[d
 def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     status_buttons = [
         {
-            "text": get_status_label(status_key),
+            "text": f"{'✅ ' if order['status'] == status_key else ''}{get_status_label(status_key)}",
             "callback_data": f"admin:status:{order['id']}:{status_key}",
         }
         for status_key in get_status_keys(order["has_delivery"])
     ]
     inline_keyboard = chunk_buttons(status_buttons, 2)
+    inline_keyboard.append(
+        [
+            {
+                "text": f"{'🚚' if order['has_delivery'] else '🛻'} {'Доставка' if order['has_delivery'] else 'Самовывоз'}",
+                "callback_data": f"admin:delivery_toggle:{order['id']}",
+            }
+        ]
+    )
+    inline_keyboard.append(
+        [
+            {"text": "💯 Клиент оплатил всё", "callback_data": f"admin:payment_full:{order['id']}"},
+            {"text": "💵 Добавить оплату", "callback_data": f"admin:payment_add:{order['id']}"},
+        ]
+    )
     inline_keyboard.append(
         [
             {"text": "Завершить заказ", "callback_data": f"admin:finish:{order['id']}"},
@@ -503,6 +733,10 @@ def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     }
 
 
+def update_order_status(order: dict[str, Any], status_key: str) -> None:
+    order["status"] = status_key
+    order["updated_at"] = now_utc_iso()
+    save_orders()
 
 def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
@@ -545,7 +779,7 @@ def build_orders_list_text() -> str:
                 [
                     f"#{order['id']} • {order['title']}",
                     f"Статус: {get_status_label(order['status'])}",
-                    f"Оплачено: {order['payment_percent']}%",
+                    f"Оплачено: {get_paid_text(order)}",
                     f"Создан: {format_local_time(order['created_at'])}",
                 ]
             )
@@ -577,8 +811,8 @@ def render_order_text(order: dict[str, Any], *, for_admin: bool) -> str:
     lines = [
         f"📦 Заказ #{order['id']}",
         f"Наименование: {order['title']}",
-        f"Цена: {order['price']}",
-        f"Оплачено: {order['payment_percent']}%",
+        f"Цена: {format_price(order['total_price'])}",
+        f"Оплачено: {get_paid_text(order)}",
         f"Статус: {get_status_label(order['status'])}",
         f"Доставка: {'Да' if order['has_delivery'] else 'Нет'}",
         f"Создан: {format_local_time(order['created_at'])}",
@@ -598,6 +832,19 @@ def render_order_text(order: dict[str, Any], *, for_admin: bool) -> str:
             lines.append(f"Завершён: {format_local_time(order['completed_at'])}")
     else:
         lines.append("Срок изготовления указан в оферте.")
+        if order.get("paid_amount", 0) < order.get("total_price", 0):
+            lines.append("Если вам необходимо доплатить, нажмите кнопку «Связаться».")
+        if order["status"] == "ready":
+            if order["has_delivery"]:
+                lines.append(
+                    "В ближайшее время мы напишем вам для уточнения вопроса доставки. Если нужно быстрее — нажмите «Связаться»."
+                )
+            else:
+                lines.append(
+                    "В ближайшее время мы напишем вам для уточнения вопроса самовывоза. Если нужно быстрее — нажмите «Связаться»."
+                )
+        if order["status"] == "awaiting_delivery" and order.get("delivery_planned_for"):
+            lines.append(f"Доставка запланирована на {order['delivery_planned_for']}.")
         if order["status"] == "completed":
             lines.append("Спасибо за заказ! Если понадобится ещё мебель — мы на связи.")
 
@@ -619,6 +866,18 @@ def send_customer_orders(chat_id: str) -> None:
         chat_id,
         build_customer_orders_text(chat_id),
         reply_markup=build_customer_orders_keyboard(chat_id),
+    )
+
+
+
+def notify_customer_order_update(order: dict[str, Any], intro_text: str) -> None:
+    customer_chat_id = order.get("customer_chat_id")
+    if not customer_chat_id:
+        return
+    send_message(
+        str(customer_chat_id),
+        f"{intro_text}\n\n{render_order_text(order, for_admin=False)}",
+        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
     )
 
 
@@ -653,6 +912,7 @@ def send_admin_help(chat_id: str) -> None:
             "Команды:\n"
             "/neworder — создать новый заказ\n"
             "/orders — список текущих заказов\n"
+            "/report — отчёт по периоду\n"
             "/cancel — отменить текущее действие"
         ),
     )
@@ -677,6 +937,78 @@ def parse_payment_percent(raw_value: str) -> int:
     if value < 0 or value > 100:
         raise ValueError("Процент оплаты должен быть от 0 до 100.")
     return value
+
+
+def parse_paid_amount(raw_value: str) -> int:
+    return parse_rubles(raw_value)
+
+
+def parse_russian_period(raw_value: str) -> tuple[datetime, datetime]:
+    cleaned = raw_value.strip()
+    if "_" not in cleaned:
+        raise ValueError("Используй формат периода: 22 января 2025_1 сентября 2025")
+
+    start_raw, end_raw = [item.strip().lower() for item in cleaned.split("_", maxsplit=1)]
+
+    def parse_single(value: str, *, end_of_day: bool) -> datetime:
+        match = re.fullmatch(r"(\d{1,2})\s+([а-яё]+)\s+(\d{4})", value)
+        if not match:
+            raise ValueError("Используй формат периода: 22 января 2025_1 сентября 2025")
+        day = int(match.group(1))
+        month_name = match.group(2)
+        year = int(match.group(3))
+        month = RUSSIAN_MONTHS.get(month_name)
+        if month is None:
+            raise ValueError(f"Не удалось распознать месяц: {month_name}")
+        hour = 23 if end_of_day else 0
+        minute = 59 if end_of_day else 0
+        second = 59 if end_of_day else 0
+        return datetime(year, month, day, hour, minute, second, tzinfo=LOCAL_TZ).astimezone(timezone.utc)
+
+    start_dt = parse_single(start_raw, end_of_day=False)
+    end_dt = parse_single(end_raw, end_of_day=True)
+    if end_dt < start_dt:
+        raise ValueError("Конец периода не может быть раньше начала.")
+    return start_dt, end_dt
+
+
+
+def build_report_text(start_dt: datetime, end_dt: datetime) -> str:
+    archived_orders = load_archived_orders()
+    filtered_orders = []
+    for order in archived_orders:
+        created_at = order.get("created_at")
+        if not created_at:
+            continue
+        created_dt = datetime.fromisoformat(created_at)
+        if start_dt <= created_dt <= end_dt:
+            filtered_orders.append(order)
+
+    if not filtered_orders:
+        return (
+            "📊 За указанный период заказов не найдено.\n"
+            f"Период: {format_local_time(start_dt.isoformat())} — {format_local_time(end_dt.isoformat())}"
+        )
+
+    total_price = sum(int(order.get("total_price", 0)) for order in filtered_orders)
+    total_paid = sum(int(order.get("paid_amount", 0)) for order in filtered_orders)
+    completed_count = sum(1 for order in filtered_orders if order.get("lifecycle_state") == "completed")
+    deleted_count = sum(1 for order in filtered_orders if order.get("lifecycle_state") == "deleted")
+    active_count = len(filtered_orders) - completed_count - deleted_count
+
+    return "\n".join(
+        [
+            "📊 Отчёт по заказам:",
+            f"Период: {format_local_time(start_dt.isoformat())} — {format_local_time(end_dt.isoformat())}",
+            f"Всего заказов: {len(filtered_orders)}",
+            f"Активные: {active_count}",
+            f"Завершённые: {completed_count}",
+            f"Удалённые: {deleted_count}",
+            f"Сумма заказов: {format_price(total_price)}",
+            f"Получено оплат: {format_price(total_paid)}",
+            f"Осталось получить: {format_price(max(total_price - total_paid, 0))}",
+        ]
+    )
 
 
 
@@ -706,6 +1038,14 @@ def handle_command(chat_id: int, text: str) -> None:
             str(chat_id),
             build_orders_list_text(),
             reply_markup=build_orders_list_keyboard(),
+        )
+        return
+
+    if stripped == "/report":
+        set_conversation(str(chat_id), "awaiting_report_period")
+        send_message(
+            str(chat_id),
+            "Введи период в формате: 22 января 2025_1 сентября 2025",
         )
         return
 
@@ -739,7 +1079,8 @@ def handle_public_start(chat_id: int, payload: str) -> None:
     if order.get("customer_chat_id") != str(chat_id):
         order["customer_chat_id"] = str(chat_id)
         order["updated_at"] = now_utc_iso()
-        save_orders()
+        append_history(order, f"Клиент открыл персональную ссылку из чата {chat_id}.")
+        persist_order(order, "completed" if order["status"] == "completed" else "active")
 
     send_order_snapshot(str(chat_id), order)
 
@@ -773,7 +1114,7 @@ def handle_text_message(chat_id: int, text: str) -> None:
             send_message(str(chat_id), f"Наименование слишком длинное. Лимит — {MAX_TITLE_LENGTH} символов.")
             return
         set_conversation(str(chat_id), "awaiting_price", draft={"title": cleaned_text})
-        send_message(str(chat_id), "Введите цену заказа, например: 24000. Бот сам покажет её как 24.000 ₽")
+        send_message(str(chat_id), "Введите цену заказа, например: 42000. Бот сам покажет её как 42.000 ₽")
         return
 
     if step == "awaiting_price":
@@ -784,19 +1125,22 @@ def handle_text_message(chat_id: int, text: str) -> None:
             send_message(str(chat_id), f"Цена слишком длинная. Лимит — {MAX_PRICE_LENGTH} символов.")
             return
         draft = dict(state_for_chat["draft"])
-        draft["price"] = normalize_price(cleaned_text)
+        draft["total_price"] = parse_rubles(cleaned_text)
         set_conversation(str(chat_id), "awaiting_payment", draft=draft)
-        send_message(str(chat_id), "Сколько уже оплачено? Укажи процент от 0 до 100.")
+        send_message(str(chat_id), "Сколько уже оплачено? Укажи сумму в рублях, например: 21000")
         return
 
     if step == "awaiting_payment":
         try:
-            payment_percent = parse_payment_percent(cleaned_text)
+            paid_amount = parse_paid_amount(cleaned_text)
         except ValueError as exc:
             send_message(str(chat_id), f"⚠️ {exc}")
             return
         draft = dict(state_for_chat["draft"])
-        draft["payment_percent"] = payment_percent
+        if paid_amount > draft["total_price"]:
+            send_message(str(chat_id), "Оплаченная сумма не может быть больше полной цены заказа.")
+            return
+        draft["paid_amount"] = paid_amount
         set_conversation(str(chat_id), "awaiting_delivery", draft=draft)
         send_message(str(chat_id), "Нужна доставка? Ответь: Да или Нет")
         return
@@ -822,7 +1166,89 @@ def handle_text_message(chat_id: int, text: str) -> None:
             return
         draft = dict(state_for_chat["draft"])
         draft["notes"] = notes
-        prompt_for_order_status(str(chat_id), draft)
+        order = create_order(
+            title=draft["title"],
+            total_price=draft["total_price"],
+            paid_amount=draft["paid_amount"],
+            has_delivery=draft["has_delivery"],
+            notes=draft["notes"],
+        )
+        clear_conversation(str(chat_id))
+        send_message(
+            str(chat_id),
+            (
+                "✅ Заказ создан.\n\n"
+                f"{render_order_text(order, for_admin=True)}"
+            ),
+            reply_markup=build_admin_order_keyboard(order),
+        )
+        clear_conversation(chat_id_str)
+        send_message(
+            chat_id_str,
+            (
+                "Готовый текст для клиента:\n"
+                f"Здравствуйте! Это персональная ссылка для отслеживания заказа #{order['id']} «{order['title']}».\n"
+                "Откройте её, чтобы увидеть статус, оплату и примечания.\n\n"
+                f"<code>{format_order_link(order['token'])}</code>"
+            ),
+            parse_mode="HTML",
+        )
+        return
+
+    if step == "awaiting_payment_add":
+        order = find_order_by_id(int(state_for_chat["order_id"]))
+        if not order:
+            clear_conversation(str(chat_id))
+            send_message(str(chat_id), "Заказ не найден.")
+            return
+        try:
+            amount = parse_paid_amount(cleaned_text)
+        except ValueError as exc:
+            send_message(str(chat_id), f"⚠️ {exc}")
+            return
+        add_payment(order, amount)
+        clear_conversation(str(chat_id))
+        notify_customer_order_update(
+            order,
+            f"По заказу #{order['id']} отмечена новая оплата: {format_price(amount)}.",
+        )
+        send_message(
+            str(chat_id),
+            f"✅ Оплата обновлена.\n\n{render_order_text(order, for_admin=True)}",
+            reply_markup=build_admin_order_keyboard(order),
+        )
+        return
+
+    if step == "awaiting_delivery_schedule":
+        order = find_order_by_id(int(state_for_chat["order_id"]))
+        if not order:
+            clear_conversation(str(chat_id))
+            send_message(str(chat_id), "Заказ не найден.")
+            return
+        if not cleaned_text:
+            send_message(str(chat_id), "Укажи дату и время доставки, например: 20 января, 20:00")
+            return
+        set_delivery_schedule(order, cleaned_text)
+        clear_conversation(str(chat_id))
+        notify_customer_order_update(
+            order,
+            f"По заказу #{order['id']} обновлён статус: Ожидание доставки.",
+        )
+        send_message(
+            str(chat_id),
+            f"✅ Доставка запланирована.\n\n{render_order_text(order, for_admin=True)}",
+            reply_markup=build_admin_order_keyboard(order),
+        )
+        return
+
+    if step == "awaiting_report_period":
+        try:
+            start_dt, end_dt = parse_russian_period(cleaned_text)
+        except ValueError as exc:
+            send_message(str(chat_id), f"⚠️ {exc}")
+            return
+        clear_conversation(str(chat_id))
+        send_message(str(chat_id), build_report_text(start_dt, end_dt))
         return
 
     send_message(str(chat_id), "Используй /cancel и начни заново через /neworder.")
@@ -926,40 +1352,6 @@ def handle_callback_query(callback_query: dict[str, Any]) -> None:
         )
         return
 
-    if data.startswith("create_status:"):
-        if not is_admin(chat_id):
-            send_public_welcome(chat_id_str)
-            return
-        state_for_chat = conversation_state.get(chat_id_str)
-        if not state_for_chat or state_for_chat.get("step") != "awaiting_status":
-            send_message(chat_id_str, "Создание заказа неактуально. Используй /neworder заново.")
-            return
-        status_key = data.split(":", maxsplit=1)[1]
-        draft = dict(state_for_chat["draft"])
-        allowed_statuses = get_status_keys(draft["has_delivery"])
-        if status_key not in allowed_statuses:
-            send_message(chat_id_str, "Этот статус недоступен для выбранного типа заказа.")
-            return
-        order = create_order(
-            title=draft["title"],
-            price=draft["price"],
-            payment_percent=draft["payment_percent"],
-            status_key=status_key,
-            has_delivery=draft["has_delivery"],
-            notes=draft["notes"],
-        )
-        clear_conversation(chat_id_str)
-        send_message(
-            chat_id_str,
-            (
-                "✅ Заказ создан.\n\n"
-                f"{render_order_text(order, for_admin=True)}\n\n"
-                "Скопируй и отправь клиенту персональную ссылку выше."
-            ),
-            reply_markup=build_admin_order_keyboard(order),
-        )
-        return
-
     if not is_admin(chat_id):
         send_public_welcome(chat_id_str)
         return
@@ -997,13 +1389,69 @@ def handle_callback_query(callback_query: dict[str, Any]) -> None:
         if status_key not in allowed_statuses:
             safe_edit_or_send(chat_id_str, message_id, "Этот статус недоступен для выбранного заказа.")
             return
+        if status_key == "awaiting_delivery":
+            set_conversation(chat_id_str, "awaiting_delivery_schedule", order_id=order["id"])
+            send_message(chat_id_str, "Укажи дату и время доставки, например: 20 января, 20:00")
+            return
         update_order_status(order, status_key)
+        notify_customer_order_update(
+            order,
+            f"По заказу #{order['id']} обновлён статус: {get_status_label(status_key)}.",
+        )
         safe_edit_or_send(
             chat_id_str,
             message_id,
             render_order_text(order, for_admin=True),
             build_admin_order_keyboard(order),
         )
+        return
+
+    if data.startswith("admin:delivery_toggle:"):
+        order_id = int(data.split(":", maxsplit=2)[2])
+        order = find_order_by_id(order_id)
+        if not order:
+            safe_edit_or_send(chat_id_str, message_id, "Заказ не найден или уже удалён.")
+            return
+        update_delivery_flag(order, not order["has_delivery"])
+        notify_customer_order_update(
+            order,
+            f"По заказу #{order['id']} изменён способ получения: {'доставка' if order['has_delivery'] else 'самовывоз'}.",
+        )
+        safe_edit_or_send(
+            chat_id_str,
+            message_id,
+            render_order_text(order, for_admin=True),
+            build_admin_order_keyboard(order),
+        )
+        return
+
+    if data.startswith("admin:payment_full:"):
+        order_id = int(data.split(":", maxsplit=2)[2])
+        order = find_order_by_id(order_id)
+        if not order:
+            safe_edit_or_send(chat_id_str, message_id, "Заказ не найден или уже удалён.")
+            return
+        mark_fully_paid(order)
+        notify_customer_order_update(
+            order,
+            f"По заказу #{order['id']} отмечена полная оплата.",
+        )
+        safe_edit_or_send(
+            chat_id_str,
+            message_id,
+            render_order_text(order, for_admin=True),
+            build_admin_order_keyboard(order),
+        )
+        return
+
+    if data.startswith("admin:payment_add:"):
+        order_id = int(data.split(":", maxsplit=2)[2])
+        order = find_order_by_id(order_id)
+        if not order:
+            safe_edit_or_send(chat_id_str, message_id, "Заказ не найден или уже удалён.")
+            return
+        set_conversation(chat_id_str, "awaiting_payment_add", order_id=order_id)
+        send_message(chat_id_str, "Введи сумму доплаты в рублях, например: 5000")
         return
 
     if data.startswith("admin:finish:"):
@@ -1069,6 +1517,18 @@ def handle_callback_query(callback_query: dict[str, Any]) -> None:
 
     if data.startswith("admin:delete_yes:"):
         order_id = int(data.split(":", maxsplit=2)[2])
+        order = find_order_by_id(order_id)
+        if order:
+            customer_chat_id = order.get("customer_chat_id")
+            if customer_chat_id:
+                send_message(
+                    str(customer_chat_id),
+                    (
+                        f"Заказ #{order['id']} удалён из системы отслеживания.\n"
+                        "Если вы считаете, что это произошло без вашего уведомления, напишите нам по кнопке ниже."
+                    ),
+                    reply_markup=build_public_keyboard(str(customer_chat_id)),
+                )
         deleted = delete_order(order_id)
         if not deleted:
             safe_edit_or_send(chat_id_str, message_id, "Заказ не найден или уже удалён.")
@@ -1147,10 +1607,12 @@ def initialize_bot_profile() -> None:
 
 def main() -> None:
     initialize_bot_profile()
+    sync_archives()
     print("🤖 Telegram order tracker bot запущен")
     print(f"👤 Управление из chat_id={ADMIN_CHAT_ID}")
     print(f"🕒 Часовой пояс: {TIMEZONE_NAME}")
     print(f"🔗 Deep-link username: @{bot_profile['username']}")
+    print(f"🗃 Архив заказов: {ARCHIVE_DIR}")
 
     while True:
         try:

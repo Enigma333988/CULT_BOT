@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 orders.json
 bot_state.json
+archive/
