@@ -101,6 +101,8 @@ ARCHIVE_DIR=archive
 python bot.py
 ```
 
+Для Windows также добавлен launcher `update_and_run.bat`: он запускается из папки проекта, подтягивает изменения через `git pull --ff-only origin main`, ставит зависимости через тот же интерпретатор Python и затем стартует `bot.py`.
+
 ### 2. Команды администратора
 
 * `/start` — открыть меню администратора
