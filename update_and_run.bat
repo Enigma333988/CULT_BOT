@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableExtensions
 
 chcp 65001 >nul
 title CULT_BOT update and run
@@ -8,19 +8,19 @@ set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
 echo ================================
-echo Обновление CULT_BOT из GitHub
+echo Updating CULT_BOT from GitHub
 echo ================================
 echo.
 
 if not exist ".git" (
-    echo [ОШИБКА] В этой папке нет git-репозитория.
+    echo [ERROR] Git repository was not found in this folder.
     pause
     exit /b 1
 )
 
 where git >nul 2>nul
 if errorlevel 1 (
-    echo [ОШИБКА] Git не найден в PATH.
+    echo [ERROR] Git was not found in PATH.
     pause
     exit /b 1
 )
@@ -34,7 +34,7 @@ if exist "venv\Scripts\python.exe" (
     ) else (
         where python >nul 2>nul
         if errorlevel 1 (
-            echo [ОШИБКА] Python не найден. Установи Python 3 или создай venv.
+            echo [ERROR] Python 3 was not found. Install Python or create a venv.
             pause
             exit /b 1
         )
@@ -45,36 +45,36 @@ if exist "venv\Scripts\python.exe" (
 git pull --ff-only origin main
 if errorlevel 1 (
     echo.
-    echo [ОШИБКА] Не удалось обновить файлы из GitHub.
-    echo Проверь наличие локальных изменений, активную ветку и доступ к origin/main.
+    echo [ERROR] Failed to update files from GitHub.
+    echo Check local changes, the active branch, and origin/main availability.
     pause
     exit /b 1
 )
 
-%PYTHON_CMD% -m pip install --upgrade pip
+call %PYTHON_CMD% -m pip install --upgrade pip
 if errorlevel 1 (
     echo.
-    echo [ОШИБКА] Не удалось обновить pip.
+    echo [ERROR] Failed to upgrade pip.
     pause
     exit /b 1
 )
 
-%PYTHON_CMD% -m pip install -r requirements.txt
+call %PYTHON_CMD% -m pip install -r requirements.txt
 if errorlevel 1 (
     echo.
-    echo [ОШИБКА] Не удалось установить зависимости.
+    echo [ERROR] Failed to install dependencies.
     pause
     exit /b 1
 )
 
-%PYTHON_CMD% bot.py
+call %PYTHON_CMD% bot.py
 set "BOT_EXIT_CODE=%ERRORLEVEL%"
 
 echo.
 if not "%BOT_EXIT_CODE%"=="0" (
-    echo [ОШИБКА] bot.py завершился с кодом %BOT_EXIT_CODE%.
+    echo [ERROR] bot.py exited with code %BOT_EXIT_CODE%.
 ) else (
-    echo [OK] bot.py завершился без ошибок.
+    echo [OK] bot.py exited successfully.
 )
 
 pause
