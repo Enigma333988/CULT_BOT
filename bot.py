@@ -355,6 +355,27 @@ def update_order_status(order: dict[str, Any], status_key: str) -> None:
     order["updated_at"] = now_utc_iso()
     save_orders()
 
+def set_conversation(chat_id: str, step: str, **extra: Any) -> None:
+    conversation_state[chat_id] = {"step": step, **extra}
+
+
+
+def clear_conversation(chat_id: str) -> None:
+    conversation_state.pop(chat_id, None)
+
+
+
+def next_order_id() -> int:
+    return max((item["id"] for item in orders), default=0) + 1
+
+
+
+def generate_order_token() -> str:
+    existing_tokens = {item["token"] for item in orders}
+    while True:
+        token = secrets.token_urlsafe(8)
+        if token not in existing_tokens:
+            return token
 
 
 def delete_order(order_id: int) -> bool:
