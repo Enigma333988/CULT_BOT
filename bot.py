@@ -212,6 +212,22 @@ def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def safe_parse_rubles(raw_value: Any, default: int = 0) -> int:
+    try:
+        return parse_rubles(raw_value)
+    except ValueError:
+        return default
+
+
+def normalize_iso_timestamp(raw_value: Any, *, default_to_now: bool) -> str | None:
+    if raw_value in {None, ""}:
+        return now_utc_iso() if default_to_now else None
+    try:
+        return datetime.fromisoformat(str(raw_value)).isoformat()
+    except ValueError:
+        return now_utc_iso() if default_to_now else None
+
+
 def migrate_order(order: dict[str, Any]) -> dict[str, Any]:
     migrated = dict(order)
     if migrated.get("status") == "ready_waiting_delivery":
@@ -220,7 +236,7 @@ def migrate_order(order: dict[str, Any]) -> dict[str, Any]:
     total_price = migrated.get("total_price")
     if total_price is None:
         raw_price = migrated.get("price", "0")
-        total_price = parse_rubles(raw_price)
+        total_price = safe_parse_rubles(raw_price, default=0)
     migrated["total_price"] = total_price
     migrated["price"] = f"{total_price:,}".replace(",", ".") + " ₽"
 
@@ -228,18 +244,69 @@ def migrate_order(order: dict[str, Any]) -> dict[str, Any]:
     if paid_amount is None:
         payment_percent = int(migrated.get("payment_percent", 0) or 0)
         paid_amount = round(total_price * payment_percent / 100)
-    migrated["paid_amount"] = max(0, min(int(paid_amount), total_price))
+    migrated["paid_amount"] = max(0, min(safe_parse_rubles(paid_amount, default=0), total_price))
 
-    migrated.setdefault("notes", "")
-    migrated.setdefault("customer_chat_id", None)
-    migrated.setdefault("completed_at", None)
-    migrated.setdefault("updated_at", migrated.get("created_at", now_utc_iso()))
+    migrated["title"] = str(
+        migrated.get("title")
+        or migrated.get("caption")
+        or f"Легаси заказ #{migrated.get('id', '?')}"
+    ).strip()[:MAX_TITLE_LENGTH] or f"Легаси заказ #{migrated.get('id', '?')}"
+    migrated["status"] = migrated.get("status") if migrated.get("status") in STATUS_LABELS else "awaiting"
+    migrated["has_delivery"] = bool(migrated.get("has_delivery", False))
+    migrated["created_at"] = normalize_iso_timestamp(migrated.get("created_at"), default_to_now=True)
+    migrated.setdefault("notes", migrated.get("caption", ""))
+    migrated["customer_chat_id"] = (
+        str(migrated.get("customer_chat_id")).strip()
+        if migrated.get("customer_chat_id") not in {None, ""}
+        else None
+    )
+    migrated["completed_at"] = normalize_iso_timestamp(migrated.get("completed_at"), default_to_now=False)
+    migrated["updated_at"] = normalize_iso_timestamp(
+        migrated.get("updated_at") or migrated.get("created_at"),
+        default_to_now=True,
+    )
     migrated.setdefault("delivery_planned_for", None)
-    migrated.setdefault("history", [])
+    migrated["history"] = migrated.get("history") if isinstance(migrated.get("history"), list) else []
     return migrated
 
 
-orders = [migrate_order(order) for order in orders]
+def migrate_loaded_orders(raw_orders: list[Any]) -> list[dict[str, Any]]:
+    existing_ids = {
+        int(item["id"])
+        for item in raw_orders
+        if isinstance(item, dict) and str(item.get("id", "")).isdigit() and int(item["id"]) > 0
+    }
+    next_generated_id = max(existing_ids, default=0) + 1
+    used_ids: set[int] = set()
+    used_tokens: set[str] = set()
+    migrated_orders: list[dict[str, Any]] = []
+
+    for raw_order in raw_orders:
+        if not isinstance(raw_order, dict):
+            continue
+
+        migrated = migrate_order(raw_order)
+
+        raw_id = migrated.get("id")
+        order_id = int(raw_id) if str(raw_id).isdigit() and int(raw_id) > 0 else None
+        if order_id is None or order_id in used_ids:
+            order_id = next_generated_id
+            next_generated_id += 1
+        migrated["id"] = order_id
+        used_ids.add(order_id)
+
+        raw_token = str(migrated.get("token") or "").strip()
+        if not raw_token or raw_token in used_tokens:
+            raw_token = secrets.token_urlsafe(8)
+        migrated["token"] = raw_token
+        used_tokens.add(raw_token)
+
+        migrated_orders.append(migrated)
+
+    return migrated_orders
+
+
+orders = migrate_loaded_orders(orders)
 state.setdefault("next_order_id", max((item["id"] for item in orders), default=0) + 1)
 
 
@@ -364,6 +431,11 @@ def get_status_label(status_key: str) -> str:
 def format_price(value: int) -> str:
     return f"{value:,}".replace(",", ".") + " ₽"
 
+def next_order_id() -> int:
+    order_id = int(state.get("next_order_id", max((item["id"] for item in orders), default=0) + 1))
+    state["next_order_id"] = order_id + 1
+    save_state()
+    return order_id
 
 def normalize_price(raw_value: str) -> str:
     cleaned = raw_value.strip()
@@ -570,14 +642,6 @@ def add_payment(order: dict[str, Any], amount: int) -> None:
     append_history(order, f"Получена доплата: {format_price(amount)}.")
     persist_order(order)
 
-def update_delivery_flag(order: dict[str, Any], has_delivery: bool) -> None:
-    order["has_delivery"] = has_delivery
-    if not has_delivery and order.get("status") in DELIVERY_EXTRA_STATUS_KEYS:
-        order["status"] = "ready"
-        order["delivery_planned_for"] = None
-    order["updated_at"] = now_utc_iso()
-    append_history(order, f"Доставка изменена: {'Да' if has_delivery else 'Нет'}")
-    persist_order(order)
 
 def mark_fully_paid(order: dict[str, Any]) -> None:
     order["paid_amount"] = order["total_price"]
@@ -690,6 +754,8 @@ def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[d
     return [buttons[index : index + chunk_size] for index in range(0, len(buttons), chunk_size)]
 
 
+def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[dict[str, Any]]]:
+    return [buttons[index : index + chunk_size] for index in range(0, len(buttons), chunk_size)]
 
 def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     status_buttons = [
@@ -726,8 +792,6 @@ def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     return {"inline_keyboard": inline_keyboard}
 
 
-def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[dict[str, Any]]]:
-    return [buttons[index : index + chunk_size] for index in range(0, len(buttons), chunk_size)]
 
 def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
@@ -784,6 +848,15 @@ def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
         ]
     }
 
+def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "Да, удалить", "callback_data": f"admin:delete_yes:{order_id}"},
+                {"text": "Нет", "callback_data": f"admin:delete_no:{order_id}"},
+            ]
+        ]
+    }
 
 def update_order_status(order: dict[str, Any], status_key: str) -> None:
     order["status"] = status_key
@@ -797,7 +870,156 @@ def build_status_choice_keyboard(has_delivery: bool) -> dict[str, Any]:
     ]
     return {"inline_keyboard": chunk_buttons(buttons, 2)}
 
+def build_status_choice_keyboard(has_delivery: bool) -> dict[str, Any]:
+    buttons = [
+        {"text": get_status_label(status_key), "callback_data": f"create_status:{status_key}"}
+        for status_key in get_status_keys(has_delivery)
+    ]
+    return {"inline_keyboard": chunk_buttons(buttons, 2)}
 
+
+def build_active_orders() -> list[dict[str, Any]]:
+    return sorted(
+        [order for order in orders if order["status"] != "completed"],
+        key=lambda item: item["created_at"],
+    )
+
+
+
+def build_orders_list_text() -> str:
+    active_orders = build_active_orders()
+    if not active_orders:
+        return "📭 Сейчас активных заказов нет. Используй /neworder, чтобы создать новый заказ."
+
+    lines = ["🗂 Текущие заказы:"]
+    for order in active_orders:
+        lines.append(
+            "\n".join(
+                [
+                    f"#{order['id']} • {order['title']}",
+                    f"Статус: {get_status_label(order['status'])}",
+                    f"Оплачено: {get_paid_text(order)}",
+                    f"Создан: {format_local_time(order['created_at'])}",
+                ]
+            )
+        )
+    return "\n\n".join(lines)
+
+
+
+def build_orders_list_keyboard() -> dict[str, Any] | None:
+    active_orders = build_active_orders()
+    if not active_orders:
+        return None
+
+    rows: list[list[dict[str, Any]]] = []
+    for order in active_orders:
+        rows.append(
+            [
+                {
+                    "text": f"Открыть #{order['id']} — {order['title'][:30]}",
+                    "callback_data": f"admin:view:{order['id']}",
+                }
+            ]
+        )
+    return {"inline_keyboard": rows}
+
+
+
+def render_order_text(order: dict[str, Any], *, for_admin: bool) -> str:
+    lines = [
+        f"📦 Заказ #{order['id']}",
+        f"Наименование: {order['title']}",
+        f"Цена: {format_price(order['total_price'])}",
+        f"Оплачено: {get_paid_text(order)}",
+        f"Статус: {get_status_label(order['status'])}",
+        f"Доставка: {'Да' if order['has_delivery'] else 'Нет'}",
+        f"Создан: {format_local_time(order['created_at'])}",
+    ]
+
+    if order.get("notes"):
+        lines.append(f"Примечание: {order['notes']}")
+    else:
+        lines.append("Примечание: —")
+
+    if for_admin:
+        lines.append(f"Ссылка для клиента: {format_order_link(order['token'])}")
+        lines.append(
+            f"Клиент открыл заказ: {'Да' if order.get('customer_chat_id') else 'Нет'}"
+        )
+        if order.get("completed_at"):
+            lines.append(f"Завершён: {format_local_time(order['completed_at'])}")
+    else:
+        lines.append("Срок изготовления указан в оферте.")
+        if order.get("paid_amount", 0) < order.get("total_price", 0):
+            lines.append("Если вам необходимо доплатить, нажмите кнопку «Связаться».")
+        if order["status"] == "ready":
+            if order["has_delivery"]:
+                lines.append(
+                    "В ближайшее время мы напишем вам для уточнения вопроса доставки. Если нужно быстрее — нажмите «Связаться»."
+                )
+            else:
+                lines.append(
+                    "В ближайшее время мы напишем вам для уточнения вопроса самовывоза. Если нужно быстрее — нажмите «Связаться»."
+                )
+        if order["status"] == "awaiting_delivery" and order.get("delivery_planned_for"):
+            lines.append(f"Доставка запланирована на {order['delivery_planned_for']}.")
+        if order["status"] == "completed":
+            lines.append("Спасибо за заказ! Если понадобится ещё мебель — мы на связи.")
+
+    return "\n".join(lines)
+
+
+
+def send_order_snapshot(chat_id: str, order: dict[str, Any]) -> None:
+    send_message(
+        chat_id,
+        render_order_text(order, for_admin=False),
+        reply_markup=build_public_keyboard(chat_id, order["token"]),
+    )
+
+
+
+def send_customer_orders(chat_id: str) -> None:
+    send_message(
+        chat_id,
+        build_customer_orders_text(chat_id),
+        reply_markup=build_customer_orders_keyboard(chat_id),
+    )
+
+
+
+def notify_customer_order_update(order: dict[str, Any], intro_text: str) -> None:
+    customer_chat_id = order.get("customer_chat_id")
+    if not customer_chat_id:
+        return
+    send_message(
+        str(customer_chat_id),
+        f"{intro_text}\n\n{render_order_text(order, for_admin=False)}",
+        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
+    )
+
+
+
+def send_public_welcome(chat_id: str) -> None:
+    send_message(
+        chat_id,
+        (
+            "Привет! Это бот отслеживания заказов Культ Мебель.\n\n"
+            "Если вам отправили персональную ссылку на заказ, просто откройте её — бот покажет статус, оплату и примечания.\n"
+            "Чтобы оформить заказ, напишите нам напрямую."
+        ),
+        reply_markup=build_public_keyboard(chat_id),
+    )
+
+
+
+def send_socials_message(chat_id: str) -> None:
+    send_message(
+        chat_id,
+        "Соцсети Культ Мебель:",
+        reply_markup=build_socials_keyboard(),
+    )
 
 def build_active_orders() -> list[dict[str, Any]]:
     return sorted(
@@ -1222,22 +1444,6 @@ def handle_text_message(chat_id: int, text: str) -> None:
             ),
             reply_markup=build_admin_order_keyboard(order),
         )
-        return
-
-    if step == "awaiting_notes":
-        notes = "" if cleaned_text == "-" else cleaned_text
-        if len(notes) > MAX_NOTES_LENGTH:
-            send_message(str(chat_id), f"Примечание слишком длинное. Лимит — {MAX_NOTES_LENGTH} символов.")
-            return
-        draft = dict(state_for_chat["draft"])
-        draft["notes"] = notes
-        order = create_order(
-            title=draft["title"],
-            total_price=draft["total_price"],
-            paid_amount=draft["paid_amount"],
-            has_delivery=draft["has_delivery"],
-            notes=draft["notes"],
-        )
         clear_conversation(str(chat_id))
         send_message(
             str(chat_id),
@@ -1309,11 +1515,35 @@ def handle_text_message(chat_id: int, text: str) -> None:
 
     send_message(str(chat_id), "Используй /cancel и начни заново через /neworder.")
 
+    send_message(str(chat_id), "Используй /cancel и начни заново через /neworder.")
 
 
 def notify_customer_order_completed(order: dict[str, Any]) -> None:
     customer_chat_id = order.get("customer_chat_id")
     if not customer_chat_id:
+        return
+    send_message(
+        str(customer_chat_id),
+        (
+            "Спасибо за ваш заказ в Культ Мебель! ❤️\n\n"
+            f"{order['title']} отмечен как завершённый. Если понадобится помощь, мы всегда на связи."
+        ),
+        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
+    )
+
+
+
+def safe_edit_or_send(chat_id: str, message_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
+    try:
+        edit_message(chat_id, message_id, text, reply_markup=reply_markup)
+    except (RuntimeError, requests.exceptions.RequestException):
+        send_message(chat_id, text, reply_markup=reply_markup)
+
+
+def safe_answer_callback_query(callback_query_id: str) -> None:
+    try:
+        answer_callback_query(callback_query_id)
+    except (RuntimeError, requests.exceptions.RequestException):
         return
     send_message(
         str(customer_chat_id),
