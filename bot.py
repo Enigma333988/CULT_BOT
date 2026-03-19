@@ -570,6 +570,14 @@ def add_payment(order: dict[str, Any], amount: int) -> None:
     append_history(order, f"Получена доплата: {format_price(amount)}.")
     persist_order(order)
 
+def update_delivery_flag(order: dict[str, Any], has_delivery: bool) -> None:
+    order["has_delivery"] = has_delivery
+    if not has_delivery and order.get("status") in DELIVERY_EXTRA_STATUS_KEYS:
+        order["status"] = "ready"
+        order["delivery_planned_for"] = None
+    order["updated_at"] = now_utc_iso()
+    append_history(order, f"Доставка изменена: {'Да' if has_delivery else 'Нет'}")
+    persist_order(order)
 
 def mark_fully_paid(order: dict[str, Any]) -> None:
     order["paid_amount"] = order["total_price"]
@@ -718,6 +726,8 @@ def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     return {"inline_keyboard": inline_keyboard}
 
 
+def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[dict[str, Any]]]:
+    return [buttons[index : index + chunk_size] for index in range(0, len(buttons), chunk_size)]
 
 def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
@@ -730,6 +740,39 @@ def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     }
 
 
+def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
+    status_buttons = [
+        {
+            "text": f"{'✅ ' if order['status'] == status_key else ''}{get_status_label(status_key)}",
+            "callback_data": f"admin:status:{order['id']}:{status_key}",
+        }
+        for status_key in get_status_keys(order["has_delivery"])
+    ]
+    inline_keyboard = chunk_buttons(status_buttons, 2)
+    inline_keyboard.append(
+        [
+            {
+                "text": f"{'🚚' if order['has_delivery'] else '🛻'} {'Доставка' if order['has_delivery'] else 'Самовывоз'}",
+                "callback_data": f"admin:delivery_toggle:{order['id']}",
+            }
+        ]
+    )
+    inline_keyboard.append(
+        [
+            {"text": "💯 Клиент оплатил всё", "callback_data": f"admin:payment_full:{order['id']}"},
+            {"text": "💵 Добавить оплату", "callback_data": f"admin:payment_add:{order['id']}"},
+        ]
+    )
+    inline_keyboard.append(
+        [
+            {"text": "Завершить заказ", "callback_data": f"admin:finish:{order['id']}"},
+            {"text": "Удалить заказ", "callback_data": f"admin:delete:{order['id']}"},
+        ]
+    )
+    inline_keyboard.append(
+        [{"text": "К списку заказов", "callback_data": "admin:list"}]
+    )
+    return {"inline_keyboard": inline_keyboard}
 
 def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
@@ -742,6 +785,10 @@ def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     }
 
 
+def update_order_status(order: dict[str, Any], status_key: str) -> None:
+    order["status"] = status_key
+    order["updated_at"] = now_utc_iso()
+    save_orders()
 
 def build_status_choice_keyboard(has_delivery: bool) -> dict[str, Any]:
     buttons = [
@@ -1175,6 +1222,23 @@ def handle_text_message(chat_id: int, text: str) -> None:
             ),
             reply_markup=build_admin_order_keyboard(order),
         )
+        return
+
+    if step == "awaiting_notes":
+        notes = "" if cleaned_text == "-" else cleaned_text
+        if len(notes) > MAX_NOTES_LENGTH:
+            send_message(str(chat_id), f"Примечание слишком длинное. Лимит — {MAX_NOTES_LENGTH} символов.")
+            return
+        draft = dict(state_for_chat["draft"])
+        draft["notes"] = notes
+        order = create_order(
+            title=draft["title"],
+            total_price=draft["total_price"],
+            paid_amount=draft["paid_amount"],
+            has_delivery=draft["has_delivery"],
+            notes=draft["notes"],
+        )
+        clear_conversation(str(chat_id))
         send_message(
             str(chat_id),
             (
@@ -1274,6 +1338,14 @@ def safe_answer_callback_query(callback_query_id: str) -> None:
         answer_callback_query(callback_query_id)
     except (RuntimeError, requests.exceptions.RequestException):
         return
+    send_message(
+        str(customer_chat_id),
+        (
+            "Спасибо за ваш заказ в Культ Мебель! ❤️\n\n"
+            f"{order['title']} отмечен как завершённый. Если понадобится помощь, мы всегда на связи."
+        ),
+        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
+    )
 
 
 
