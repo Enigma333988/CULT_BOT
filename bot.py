@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import secrets
 import time
 from datetime import datetime, timezone
@@ -260,6 +261,17 @@ def generate_order_token() -> str:
             return token
 
 
+def find_orders_for_customer(chat_id: str) -> list[dict[str, Any]]:
+    return sorted(
+        [order for order in orders if order.get("customer_chat_id") == chat_id],
+        key=lambda item: item["created_at"],
+    )
+
+
+def has_customer_orders(chat_id: str) -> bool:
+    return bool(find_orders_for_customer(chat_id))
+
+
 
 def get_status_keys(has_delivery: bool) -> list[str]:
     keys = list(BASE_STATUS_KEYS)
@@ -272,6 +284,17 @@ def get_status_keys(has_delivery: bool) -> list[str]:
 def get_status_label(status_key: str) -> str:
     return STATUS_LABELS.get(status_key, status_key)
 
+
+def format_price(value: int) -> str:
+    return f"{value:,}".replace(",", ".") + " ₽"
+
+
+def normalize_price(raw_value: str) -> str:
+    cleaned = raw_value.strip()
+    numeric_candidate = re.sub(r"(руб\.?|р\.?|₽|\s|[.,])", "", cleaned.lower())
+    if numeric_candidate.isdigit():
+        return format_price(int(numeric_candidate))
+    return cleaned
 
 
 def format_order_link(token: str) -> str:
@@ -332,6 +355,27 @@ def update_order_status(order: dict[str, Any], status_key: str) -> None:
     order["updated_at"] = now_utc_iso()
     save_orders()
 
+def set_conversation(chat_id: str, step: str, **extra: Any) -> None:
+    conversation_state[chat_id] = {"step": step, **extra}
+
+
+
+def clear_conversation(chat_id: str) -> None:
+    conversation_state.pop(chat_id, None)
+
+
+
+def next_order_id() -> int:
+    return max((item["id"] for item in orders), default=0) + 1
+
+
+
+def generate_order_token() -> str:
+    existing_tokens = {item["token"] for item in orders}
+    while True:
+        token = secrets.token_urlsafe(8)
+        if token not in existing_tokens:
+            return token
 
 
 def delete_order(order_id: int) -> bool:
@@ -352,17 +396,60 @@ def complete_order(order: dict[str, Any]) -> None:
 
 
 
-def build_public_keyboard(include_refresh_token: str | None = None) -> dict[str, Any]:
-    keyboard = [
-        [{"text": "Связаться", "url": CONTACT_URL}],
-        [{"text": "Соц.сети Культ Мебель", "callback_data": "public:socials"}],
-    ]
+def build_public_keyboard(
+    chat_id: str | None = None,
+    include_refresh_token: str | None = None,
+) -> dict[str, Any]:
+    keyboard: list[list[dict[str, Any]]] = []
     if include_refresh_token:
-        keyboard.insert(
-            0,
-            [{"text": "Обновить статус", "callback_data": f"client:refresh:{include_refresh_token}"}],
+        keyboard.append(
+            [{"text": "Обновить статус", "callback_data": f"client:refresh:{include_refresh_token}"}]
         )
+    if chat_id and has_customer_orders(chat_id):
+        keyboard.append([{"text": "Мои заказы", "callback_data": "client:list"}])
+    keyboard.extend(
+        [
+            [{"text": "Связаться", "url": CONTACT_URL}],
+            [{"text": "Соц.сети Культ Мебель", "callback_data": "public:socials"}],
+        ]
+    )
     return {"inline_keyboard": keyboard}
+
+
+def build_customer_orders_text(chat_id: str) -> str:
+    customer_orders = find_orders_for_customer(chat_id)
+    if not customer_orders:
+        return "У вас пока нет привязанных заказов. Откройте персональную ссылку, которую вам отправил менеджер."
+
+    lines = ["📦 Ваши заказы:"]
+    for order in customer_orders:
+        lines.append(
+            "\n".join(
+                [
+                    f"#{order['id']} • {order['title']}",
+                    f"Статус: {get_status_label(order['status'])}",
+                    f"Цена: {order['price']}",
+                    f"Создан: {format_local_time(order['created_at'])}",
+                ]
+            )
+        )
+    return "\n\n".join(lines)
+
+
+def build_customer_orders_keyboard(chat_id: str) -> dict[str, Any]:
+    rows: list[list[dict[str, Any]]] = []
+    for order in find_orders_for_customer(chat_id):
+        rows.append(
+            [
+                {
+                    "text": f"Открыть #{order['id']} — {order['title'][:28]}",
+                    "callback_data": f"client:view:{order['token']}",
+                }
+            ]
+        )
+    rows.append([{"text": "Связаться", "url": CONTACT_URL}])
+    rows.append([{"text": "Соц.сети Культ Мебель", "callback_data": "public:socials"}])
+    return {"inline_keyboard": rows}
 
 
 
@@ -522,7 +609,16 @@ def send_order_snapshot(chat_id: str, order: dict[str, Any]) -> None:
     send_message(
         chat_id,
         render_order_text(order, for_admin=False),
-        reply_markup=build_public_keyboard(order["token"]),
+        reply_markup=build_public_keyboard(chat_id, order["token"]),
+    )
+
+
+
+def send_customer_orders(chat_id: str) -> None:
+    send_message(
+        chat_id,
+        build_customer_orders_text(chat_id),
+        reply_markup=build_customer_orders_keyboard(chat_id),
     )
 
 
@@ -535,7 +631,7 @@ def send_public_welcome(chat_id: str) -> None:
             "Если вам отправили персональную ссылку на заказ, просто откройте её — бот покажет статус, оплату и примечания.\n"
             "Чтобы оформить заказ, напишите нам напрямую."
         ),
-        reply_markup=build_public_keyboard(),
+        reply_markup=build_public_keyboard(chat_id),
     )
 
 
@@ -636,7 +732,7 @@ def handle_public_start(chat_id: int, payload: str) -> None:
         send_message(
             str(chat_id),
             "Заказ по этой ссылке не найден или уже удалён. Напишите нам, и мы поможем уточнить информацию.",
-            reply_markup=build_public_keyboard(),
+            reply_markup=build_public_keyboard(str(chat_id)),
         )
         return
 
@@ -677,7 +773,7 @@ def handle_text_message(chat_id: int, text: str) -> None:
             send_message(str(chat_id), f"Наименование слишком длинное. Лимит — {MAX_TITLE_LENGTH} символов.")
             return
         set_conversation(str(chat_id), "awaiting_price", draft={"title": cleaned_text})
-        send_message(str(chat_id), "Введите цену заказа, например: 120 000 ₽")
+        send_message(str(chat_id), "Введите цену заказа, например: 24000. Бот сам покажет её как 24.000 ₽")
         return
 
     if step == "awaiting_price":
@@ -688,7 +784,7 @@ def handle_text_message(chat_id: int, text: str) -> None:
             send_message(str(chat_id), f"Цена слишком длинная. Лимит — {MAX_PRICE_LENGTH} символов.")
             return
         draft = dict(state_for_chat["draft"])
-        draft["price"] = cleaned_text
+        draft["price"] = normalize_price(cleaned_text)
         set_conversation(str(chat_id), "awaiting_payment", draft=draft)
         send_message(str(chat_id), "Сколько уже оплачено? Укажи процент от 0 до 100.")
         return
@@ -743,7 +839,7 @@ def notify_customer_order_completed(order: dict[str, Any]) -> None:
             "Спасибо за ваш заказ в Культ Мебель! ❤️\n\n"
             f"{order['title']} отмечен как завершённый. Если понадобится помощь, мы всегда на связи."
         ),
-        reply_markup=build_public_keyboard(order["token"]),
+        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
     )
 
 
@@ -751,8 +847,15 @@ def notify_customer_order_completed(order: dict[str, Any]) -> None:
 def safe_edit_or_send(chat_id: str, message_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
     try:
         edit_message(chat_id, message_id, text, reply_markup=reply_markup)
-    except RuntimeError:
+    except (RuntimeError, requests.exceptions.RequestException):
         send_message(chat_id, text, reply_markup=reply_markup)
+
+
+def safe_answer_callback_query(callback_query_id: str) -> None:
+    try:
+        answer_callback_query(callback_query_id)
+    except (RuntimeError, requests.exceptions.RequestException):
+        return
 
 
 
@@ -765,7 +868,7 @@ def handle_callback_query(callback_query: dict[str, Any]) -> None:
     message_id = message.get("message_id")
 
     if callback_id:
-        answer_callback_query(callback_id)
+        safe_answer_callback_query(callback_id)
 
     if chat_id is None or message_id is None:
         return
@@ -776,22 +879,50 @@ def handle_callback_query(callback_query: dict[str, Any]) -> None:
         send_socials_message(chat_id_str)
         return
 
-    if data.startswith("client:refresh:"):
+    if data == "client:list":
+        safe_edit_or_send(
+            chat_id_str,
+            message_id,
+            build_customer_orders_text(chat_id_str),
+            build_customer_orders_keyboard(chat_id_str),
+        )
+        return
+
+    if data.startswith("client:view:"):
         token = data.split(":", maxsplit=2)[2]
         order = find_order_by_token(token)
-        if not order:
+        if not order or order.get("customer_chat_id") != chat_id_str:
             safe_edit_or_send(
                 chat_id_str,
                 message_id,
-                "Заказ больше недоступен. Напишите нам, и мы поможем уточнить информацию.",
-                build_public_keyboard(),
+                "Не удалось открыть заказ. Если нужна помощь — напишите нам.",
+                build_public_keyboard(chat_id_str),
             )
             return
         safe_edit_or_send(
             chat_id_str,
             message_id,
             render_order_text(order, for_admin=False),
-            build_public_keyboard(order["token"]),
+            build_public_keyboard(chat_id_str, order["token"]),
+        )
+        return
+
+    if data.startswith("client:refresh:"):
+        token = data.split(":", maxsplit=2)[2]
+        order = find_order_by_token(token)
+        if not order or order.get("customer_chat_id") != chat_id_str:
+            safe_edit_or_send(
+                chat_id_str,
+                message_id,
+                "Заказ больше недоступен. Напишите нам, и мы поможем уточнить информацию.",
+                build_public_keyboard(chat_id_str),
+            )
+            return
+        safe_edit_or_send(
+            chat_id_str,
+            message_id,
+            render_order_text(order, for_admin=False),
+            build_public_keyboard(chat_id_str, order["token"]),
         )
         return
 
@@ -1025,9 +1156,15 @@ def main() -> None:
         try:
             updates = fetch_updates()
             for update in updates:
-                handle_update(update)
-                state["last_update_id"] = update["update_id"]
-                save_state()
+                try:
+                    handle_update(update)
+                except requests.exceptions.RequestException as exc:
+                    print(f"❌ Ошибка requests при обработке update {update['update_id']}: {exc}")
+                except RuntimeError as exc:
+                    print(f"⚠️ Ошибка Telegram API при обработке update {update['update_id']}: {exc}")
+                finally:
+                    state["last_update_id"] = update["update_id"]
+                    save_state()
 
             time.sleep(LOOP_INTERVAL_SECONDS)
         except KeyboardInterrupt:
