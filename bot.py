@@ -431,11 +431,6 @@ def get_status_label(status_key: str) -> str:
 def format_price(value: int) -> str:
     return f"{value:,}".replace(",", ".") + " ₽"
 
-def next_order_id() -> int:
-    order_id = int(state.get("next_order_id", max((item["id"] for item in orders), default=0) + 1))
-    state["next_order_id"] = order_id + 1
-    save_state()
-    return order_id
 
 def normalize_price(raw_value: str) -> str:
     cleaned = raw_value.strip()
@@ -754,8 +749,6 @@ def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[d
     return [buttons[index : index + chunk_size] for index in range(0, len(buttons), chunk_size)]
 
 
-def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[dict[str, Any]]]:
-    return [buttons[index : index + chunk_size] for index in range(0, len(buttons), chunk_size)]
 
 def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     status_buttons = [
@@ -804,40 +797,6 @@ def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     }
 
 
-def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
-    status_buttons = [
-        {
-            "text": f"{'✅ ' if order['status'] == status_key else ''}{get_status_label(status_key)}",
-            "callback_data": f"admin:status:{order['id']}:{status_key}",
-        }
-        for status_key in get_status_keys(order["has_delivery"])
-    ]
-    inline_keyboard = chunk_buttons(status_buttons, 2)
-    inline_keyboard.append(
-        [
-            {
-                "text": f"{'🚚' if order['has_delivery'] else '🛻'} {'Доставка' if order['has_delivery'] else 'Самовывоз'}",
-                "callback_data": f"admin:delivery_toggle:{order['id']}",
-            }
-        ]
-    )
-    inline_keyboard.append(
-        [
-            {"text": "💯 Клиент оплатил всё", "callback_data": f"admin:payment_full:{order['id']}"},
-            {"text": "💵 Добавить оплату", "callback_data": f"admin:payment_add:{order['id']}"},
-        ]
-    )
-    inline_keyboard.append(
-        [
-            {"text": "Завершить заказ", "callback_data": f"admin:finish:{order['id']}"},
-            {"text": "Удалить заказ", "callback_data": f"admin:delete:{order['id']}"},
-        ]
-    )
-    inline_keyboard.append(
-        [{"text": "К списку заказов", "callback_data": "admin:list"}]
-    )
-    return {"inline_keyboard": inline_keyboard}
-
 def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
         "inline_keyboard": [
@@ -848,20 +807,6 @@ def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
         ]
     }
 
-def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
-    return {
-        "inline_keyboard": [
-            [
-                {"text": "Да, удалить", "callback_data": f"admin:delete_yes:{order_id}"},
-                {"text": "Нет", "callback_data": f"admin:delete_no:{order_id}"},
-            ]
-        ]
-    }
-
-def update_order_status(order: dict[str, Any], status_key: str) -> None:
-    order["status"] = status_key
-    order["updated_at"] = now_utc_iso()
-    save_orders()
 
 def build_status_choice_keyboard(has_delivery: bool) -> dict[str, Any]:
     buttons = [
@@ -870,12 +815,7 @@ def build_status_choice_keyboard(has_delivery: bool) -> dict[str, Any]:
     ]
     return {"inline_keyboard": chunk_buttons(buttons, 2)}
 
-def build_status_choice_keyboard(has_delivery: bool) -> dict[str, Any]:
-    buttons = [
-        {"text": get_status_label(status_key), "callback_data": f"create_status:{status_key}"}
-        for status_key in get_status_keys(has_delivery)
-    ]
-    return {"inline_keyboard": chunk_buttons(buttons, 2)}
+
 
 
 def build_active_orders() -> list[dict[str, Any]]:
@@ -1021,148 +961,6 @@ def send_socials_message(chat_id: str) -> None:
         reply_markup=build_socials_keyboard(),
     )
 
-def build_active_orders() -> list[dict[str, Any]]:
-    return sorted(
-        [order for order in orders if order["status"] != "completed"],
-        key=lambda item: item["created_at"],
-    )
-
-
-
-def build_orders_list_text() -> str:
-    active_orders = build_active_orders()
-    if not active_orders:
-        return "📭 Сейчас активных заказов нет. Используй /neworder, чтобы создать новый заказ."
-
-    lines = ["🗂 Текущие заказы:"]
-    for order in active_orders:
-        lines.append(
-            "\n".join(
-                [
-                    f"#{order['id']} • {order['title']}",
-                    f"Статус: {get_status_label(order['status'])}",
-                    f"Оплачено: {get_paid_text(order)}",
-                    f"Создан: {format_local_time(order['created_at'])}",
-                ]
-            )
-        )
-    return "\n\n".join(lines)
-
-
-
-def build_orders_list_keyboard() -> dict[str, Any] | None:
-    active_orders = build_active_orders()
-    if not active_orders:
-        return None
-
-    rows: list[list[dict[str, Any]]] = []
-    for order in active_orders:
-        rows.append(
-            [
-                {
-                    "text": f"Открыть #{order['id']} — {order['title'][:30]}",
-                    "callback_data": f"admin:view:{order['id']}",
-                }
-            ]
-        )
-    return {"inline_keyboard": rows}
-
-
-
-def render_order_text(order: dict[str, Any], *, for_admin: bool) -> str:
-    lines = [
-        f"📦 Заказ #{order['id']}",
-        f"Наименование: {order['title']}",
-        f"Цена: {format_price(order['total_price'])}",
-        f"Оплачено: {get_paid_text(order)}",
-        f"Статус: {get_status_label(order['status'])}",
-        f"Доставка: {'Да' if order['has_delivery'] else 'Нет'}",
-        f"Создан: {format_local_time(order['created_at'])}",
-    ]
-
-    if order.get("notes"):
-        lines.append(f"Примечание: {order['notes']}")
-    else:
-        lines.append("Примечание: —")
-
-    if for_admin:
-        lines.append(f"Ссылка для клиента: {format_order_link(order['token'])}")
-        lines.append(
-            f"Клиент открыл заказ: {'Да' if order.get('customer_chat_id') else 'Нет'}"
-        )
-        if order.get("completed_at"):
-            lines.append(f"Завершён: {format_local_time(order['completed_at'])}")
-    else:
-        lines.append("Срок изготовления указан в оферте.")
-        if order.get("paid_amount", 0) < order.get("total_price", 0):
-            lines.append("Если вам необходимо доплатить, нажмите кнопку «Связаться».")
-        if order["status"] == "ready":
-            if order["has_delivery"]:
-                lines.append(
-                    "В ближайшее время мы напишем вам для уточнения вопроса доставки. Если нужно быстрее — нажмите «Связаться»."
-                )
-            else:
-                lines.append(
-                    "В ближайшее время мы напишем вам для уточнения вопроса самовывоза. Если нужно быстрее — нажмите «Связаться»."
-                )
-        if order["status"] == "awaiting_delivery" and order.get("delivery_planned_for"):
-            lines.append(f"Доставка запланирована на {order['delivery_planned_for']}.")
-        if order["status"] == "completed":
-            lines.append("Спасибо за заказ! Если понадобится ещё мебель — мы на связи.")
-
-    return "\n".join(lines)
-
-
-
-def send_order_snapshot(chat_id: str, order: dict[str, Any]) -> None:
-    send_message(
-        chat_id,
-        render_order_text(order, for_admin=False),
-        reply_markup=build_public_keyboard(chat_id, order["token"]),
-    )
-
-
-
-def send_customer_orders(chat_id: str) -> None:
-    send_message(
-        chat_id,
-        build_customer_orders_text(chat_id),
-        reply_markup=build_customer_orders_keyboard(chat_id),
-    )
-
-
-
-def notify_customer_order_update(order: dict[str, Any], intro_text: str) -> None:
-    customer_chat_id = order.get("customer_chat_id")
-    if not customer_chat_id:
-        return
-    send_message(
-        str(customer_chat_id),
-        f"{intro_text}\n\n{render_order_text(order, for_admin=False)}",
-        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
-    )
-
-
-
-def send_public_welcome(chat_id: str) -> None:
-    send_message(
-        chat_id,
-        (
-            "Привет! Это бот отслеживания заказов Культ Мебель.\n\n"
-            "Если вам отправили персональную ссылку на заказ, просто откройте её — бот покажет статус, оплату и примечания.\n"
-            "Чтобы оформить заказ, напишите нам напрямую."
-        ),
-        reply_markup=build_public_keyboard(chat_id),
-    )
-
-
-
-def send_socials_message(chat_id: str) -> None:
-    send_message(
-        chat_id,
-        "Соцсети Культ Мебель:",
-        reply_markup=build_socials_keyboard(),
-    )
 
 
 
@@ -1545,37 +1343,9 @@ def safe_answer_callback_query(callback_query_id: str) -> None:
         answer_callback_query(callback_query_id)
     except (RuntimeError, requests.exceptions.RequestException):
         return
-    send_message(
-        str(customer_chat_id),
-        (
-            "Спасибо за ваш заказ в Культ Мебель! ❤️\n\n"
-            f"{order['title']} отмечен как завершённый. Если понадобится помощь, мы всегда на связи."
-        ),
-        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
-    )
 
 
 
-def safe_edit_or_send(chat_id: str, message_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
-    try:
-        edit_message(chat_id, message_id, text, reply_markup=reply_markup)
-    except (RuntimeError, requests.exceptions.RequestException):
-        send_message(chat_id, text, reply_markup=reply_markup)
-
-
-def safe_answer_callback_query(callback_query_id: str) -> None:
-    try:
-        answer_callback_query(callback_query_id)
-    except (RuntimeError, requests.exceptions.RequestException):
-        return
-    send_message(
-        str(customer_chat_id),
-        (
-            "Спасибо за ваш заказ в Культ Мебель! ❤️\n\n"
-            f"{order['title']} отмечен как завершённый. Если понадобится помощь, мы всегда на связи."
-        ),
-        reply_markup=build_public_keyboard(str(customer_chat_id), order["token"]),
-    )
 
 
 
