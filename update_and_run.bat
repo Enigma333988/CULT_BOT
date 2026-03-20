@@ -5,6 +5,7 @@ chcp 65001 >nul
 title CULT_BOT update and run
 
 set "SCRIPT_DIR=%~dp0"
+set "PIP_MIRROR=https://pypi.tuna.tsinghua.edu.cn/simple"
 cd /d "%SCRIPT_DIR%"
 
 echo ================================
@@ -51,7 +52,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-call %PYTHON_CMD% -m pip install --upgrade pip
+call %PYTHON_CMD% -m pip install --upgrade pip -i %PIP_MIRROR%
 if errorlevel 1 (
     echo.
     echo [ERROR] Failed to upgrade pip.
@@ -59,7 +60,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-call %PYTHON_CMD% -m pip install -r requirements.txt
+call %PYTHON_CMD% -m pip install -r requirements.txt -i %PIP_MIRROR%
 if errorlevel 1 (
     echo.
     echo [ERROR] Failed to install dependencies.
