@@ -796,6 +796,21 @@ def is_max_admin_identity(raw_value: str | int | None) -> bool:
     return any(candidate in configured_ids for candidate in candidates)
 
 
+def build_max_id_variants(raw_value: str | int | None) -> set[str]:
+    if raw_value in {None, ""}:
+        return set()
+    value = str(raw_value).strip()
+    if not value:
+        return set()
+    candidates = {value}
+    normalized_value = value.split(":", maxsplit=1)[1] if ":" in value else value
+    if normalized_value:
+        candidates.add(normalized_value)
+        candidates.add(f"user:{normalized_value}")
+        candidates.add(f"chat:{normalized_value}")
+    return candidates
+
+
 
 def find_catalog_item_by_id(item_id: int) -> dict[str, Any] | None:
     for item in catalog_items:
@@ -818,7 +833,13 @@ def get_order_bindings(order: dict[str, Any]) -> list[dict[str, str]]:
 
 def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str, str] | None:
     for item in get_order_bindings(order):
-        if item["platform"] == platform and item["chat_id"] == chat_id:
+        if item["platform"] != platform:
+            continue
+        if platform == "max":
+            if build_max_id_variants(item["chat_id"]) & build_max_id_variants(chat_id):
+                return item
+            continue
+        if item["chat_id"] == chat_id:
             return item
     return None
 
@@ -2614,6 +2635,21 @@ def log_max_admin_candidates(update: dict[str, Any]) -> None:
     print("   ↑ Возьми нужный ID из candidates и укажи его в .env как MAX_ADMIN_CHAT_ID")
 
 
+def extract_matching_max_admin_actor_id(update: dict[str, Any]) -> str | None:
+    matching_candidates = [
+        candidate
+        for candidate in sorted(extract_max_admin_identity_candidates(update))
+        if is_max_admin_identity(candidate)
+    ]
+    if not matching_candidates:
+        return None
+    for prefix in ("user:", "chat:"):
+        prefixed_match = next((item for item in matching_candidates if item.startswith(prefix)), None)
+        if prefixed_match:
+            return prefixed_match
+    return matching_candidates[0]
+
+
 
 def handle_telegram_update(update: dict[str, Any]) -> None:
     callback_query = update.get("callback_query")
@@ -2657,9 +2693,13 @@ def handle_telegram_update(update: dict[str, Any]) -> None:
 def handle_max_update(update: dict[str, Any]) -> None:
     update_type = str(update.get("update_type") or "")
     log_max_admin_candidates(update)
+    admin_actor_id = extract_matching_max_admin_actor_id(update)
     if update_type == "bot_started":
         chat_id = update.get("chat_id")
         if chat_id is None:
+            return
+        if admin_actor_id:
+            send_admin_help("max", admin_actor_id)
             return
         payload = str(update.get("payload") or "")
         handle_public_start("max", str(chat_id), payload)
@@ -2668,7 +2708,7 @@ def handle_max_update(update: dict[str, Any]) -> None:
     if update_type == "message_callback":
         message = update.get("message") or {}
         callback = update.get("callback") or {}
-        chat_id = extract_max_message_peer_id(message)
+        chat_id = admin_actor_id or extract_max_message_peer_id(message)
         message_id = extract_message_id("max", message)
         data = str(callback.get("payload") or callback.get("data") or "")
         callback_id = str(callback.get("callback_id") or "") or None
@@ -2687,12 +2727,12 @@ def handle_max_update(update: dict[str, Any]) -> None:
         return
     if text:
         handle_text_message("max", chat_id, text, extract_message_id("max", message))
-        if any(is_max_admin_identity(candidate) for candidate in extract_max_admin_identity_candidates(update)):
+        if admin_actor_id:
             safe_delete_message("max", chat_id, extract_message_id("max", message))
         return
 
-    if any(is_max_admin_identity(candidate) for candidate in extract_max_admin_identity_candidates(update)):
-        send_admin_message("max", chat_id, "Поддерживаются текстовые команды и сообщения.")
+    if admin_actor_id:
+        send_admin_message("max", admin_actor_id, "Поддерживаются текстовые команды и сообщения.")
     else:
         send_public_welcome("max", chat_id)
 
