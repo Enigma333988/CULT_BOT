@@ -66,6 +66,7 @@ MENU_LABEL = "Меню"
 CONTACT_URL = "https://t.me/cultmebel?direct"
 VK_URL = "https://vk.com/cultmebel"
 TG_URL = "https://t.me/cultmebel"
+MAX_URL = "https://max.ru/id32619664754_biz"
 PAYMENT_OPTIONS = {
     "0": 0,
     "50": 50,
@@ -1389,7 +1390,10 @@ def build_socials_keyboard() -> dict[str, Any]:
             [
                 {"text": "VK", "url": VK_URL},
                 {"text": "Telegram", "url": TG_URL},
-            ]
+            ],
+            [
+                {"text": "MAX", "url": MAX_URL},
+            ],
         ]
     }
 
