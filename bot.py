@@ -466,7 +466,18 @@ def send_admin_message(
     new_message_id = int(result.get("message_id"))
     set_ui_message(chat_id, new_message_id)
     if inline_keyboard:
-        edit_message(chat_id, new_message_id, text, reply_markup=inline_keyboard, parse_mode=parse_mode)
+        try:
+            edit_message(chat_id, new_message_id, text, reply_markup=inline_keyboard, parse_mode=parse_mode)
+        except (RuntimeError, requests.exceptions.RequestException):
+            inline_result = send_message(
+                chat_id,
+                text,
+                reply_markup=inline_keyboard,
+                parse_mode=parse_mode,
+            )
+            inline_message_id = int(inline_result.get("message_id"))
+            set_ui_message(chat_id, inline_message_id)
+            return inline_message_id
     return new_message_id
 
 
