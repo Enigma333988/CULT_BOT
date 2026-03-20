@@ -772,6 +772,26 @@ def send_admin_message(
     return new_message_id or ""
 
 
+def resend_admin_message_at_bottom(
+    platform: str,
+    chat_id: str,
+    text: str,
+    *,
+    inline_keyboard: dict[str, Any] | None = None,
+    parse_mode: str | None = None,
+) -> str:
+    actor = actor_key(platform, chat_id)
+    safe_delete_message(platform, chat_id, get_ui_message_id(actor))
+    return send_admin_message(
+        platform,
+        chat_id,
+        text,
+        inline_keyboard=inline_keyboard,
+        parse_mode=parse_mode,
+        force_new=True,
+    )
+
+
 
 def is_admin(platform: str, chat_id: str | int) -> bool:
     if platform == "telegram":
@@ -2016,6 +2036,12 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
             chat_id,
             render_client_share_html(order),
             parse_mode="HTML",
+        )
+        resend_admin_message_at_bottom(
+            platform,
+            chat_id,
+            format_admin_order_text(order),
+            inline_keyboard=build_admin_order_keyboard(order),
         )
         return
 
