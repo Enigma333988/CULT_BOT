@@ -250,6 +250,7 @@ def save_orders() -> None:
 
 
 
+
 def save_catalog() -> None:
     with state_lock:
         ensure_parent_dir(CATALOG_FILE)
@@ -786,6 +787,11 @@ def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str
             return item
     return None
 
+def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str, str] | None:
+    for item in get_order_bindings(order):
+        if item["platform"] == platform and item["chat_id"] == chat_id:
+            return item
+    return None
 
 
 def link_customer_to_order(order: dict[str, Any], platform: str, chat_id: str) -> bool:
@@ -2522,7 +2528,7 @@ def run_telegram_polling(stop_event: threading.Event) -> None:
             print(f"❌ Ошибка requests Telegram: {exc}")
             time.sleep(5)
         except RuntimeError as exc:
-            print(f"⚠️ Ошибка Telegram API: {exc}")
+            print(f"⚠️ Ошибка API: {exc}")
             time.sleep(5)
 
 
