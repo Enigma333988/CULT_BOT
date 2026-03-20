@@ -160,6 +160,7 @@ bot_profiles: dict[str, dict[str, Any]] = {
     "max": {"enabled": bool(MAX_TOKEN), "username": None, "name": None},
 }
 max_chat_link_cache: dict[str, str | None] = {}
+logged_max_admin_candidates: set[tuple[str, ...]] = set()
 
 
 
@@ -2599,6 +2600,20 @@ def extract_max_admin_identity_candidates(update: dict[str, Any]) -> set[str]:
     return {item for item in candidates if item}
 
 
+def log_max_admin_candidates(update: dict[str, Any]) -> None:
+    candidates = sorted(extract_max_admin_identity_candidates(update))
+    if not candidates:
+        return
+    cache_key = tuple(candidates)
+    if cache_key in logged_max_admin_candidates:
+        return
+    logged_max_admin_candidates.add(cache_key)
+    print("🆔 MAX admin ID candidates detected:")
+    print(f"   candidates: {', '.join(candidates)}")
+    print(f"   current MAX_ADMIN_CHAT_ID: {MAX_ADMIN_CHAT_ID}")
+    print("   ↑ Возьми нужный ID из candidates и укажи его в .env как MAX_ADMIN_CHAT_ID")
+
+
 
 def handle_telegram_update(update: dict[str, Any]) -> None:
     callback_query = update.get("callback_query")
@@ -2641,6 +2656,7 @@ def handle_telegram_update(update: dict[str, Any]) -> None:
 
 def handle_max_update(update: dict[str, Any]) -> None:
     update_type = str(update.get("update_type") or "")
+    log_max_admin_candidates(update)
     if update_type == "bot_started":
         chat_id = update.get("chat_id")
         if chat_id is None:
