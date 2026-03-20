@@ -2,6 +2,7 @@ import json
 import os
 import re
 import secrets
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -133,10 +134,21 @@ except Exception as exc:
         "❌ Некорректная TIMEZONE. Используй IANA-имя, например Europe/Moscow или UTC"
     ) from exc
 
-session = requests.Session()
-session.trust_env = False
-if PROXY:
-    session.proxies.update({"http": PROXY, "https": PROXY})
+thread_local = threading.local()
+state_lock = threading.RLock()
+
+
+def get_http_session() -> requests.Session:
+    existing_session = getattr(thread_local, "session", None)
+    if existing_session is not None:
+        return existing_session
+
+    created_session = requests.Session()
+    created_session.trust_env = False
+    if PROXY:
+        created_session.proxies.update({"http": PROXY, "https": PROXY})
+    thread_local.session = created_session
+    return created_session
 
 TELEGRAM_API_BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}" if TELEGRAM_TOKEN else None
 MAX_API_BASE_URL = "https://platform-api.max.ru" if MAX_TOKEN else None
@@ -219,29 +231,33 @@ catalog_items: list[dict[str, Any]] = load_json(CATALOG_FILE, [])
 
 
 def save_state() -> None:
-    ensure_parent_dir(STATE_FILE)
-    STATE_FILE.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    with state_lock:
+        ensure_parent_dir(STATE_FILE)
+        STATE_FILE.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
 
 
 def save_orders() -> None:
-    ensure_parent_dir(ORDERS_FILE)
-    ORDERS_FILE.write_text(
-        json.dumps(orders, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    with state_lock:
+        ensure_parent_dir(ORDERS_FILE)
+        ORDERS_FILE.write_text(
+            json.dumps(orders, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
 
 
 
 def save_catalog() -> None:
-    ensure_parent_dir(CATALOG_FILE)
-    CATALOG_FILE.write_text(
-        json.dumps(catalog_items, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    with state_lock:
+        ensure_parent_dir(CATALOG_FILE)
+        CATALOG_FILE.write_text(
+            json.dumps(catalog_items, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
 
 
@@ -433,18 +449,20 @@ state.setdefault("next_catalog_item_id", max((item["id"] for item in catalog_ite
 
 
 def next_order_id() -> int:
-    order_id = int(state.get("next_order_id", max((item["id"] for item in orders), default=0) + 1))
-    state["next_order_id"] = order_id + 1
-    save_state()
-    return order_id
+    with state_lock:
+        order_id = int(state.get("next_order_id", max((item["id"] for item in orders), default=0) + 1))
+        state["next_order_id"] = order_id + 1
+        save_state()
+        return order_id
 
 
 
 def next_catalog_item_id() -> int:
-    item_id = int(state.get("next_catalog_item_id", max((item["id"] for item in catalog_items), default=0) + 1))
-    state["next_catalog_item_id"] = item_id + 1
-    save_state()
-    return item_id
+    with state_lock:
+        item_id = int(state.get("next_catalog_item_id", max((item["id"] for item in catalog_items), default=0) + 1))
+        state["next_catalog_item_id"] = item_id + 1
+        save_state()
+        return item_id
 
 
 
@@ -485,7 +503,7 @@ def json_dumps(payload: dict[str, Any]) -> str:
 def telegram_api_request(method: str, *, data: dict[str, Any] | None = None) -> dict[str, Any]:
     if not TELEGRAM_API_BASE_URL:
         raise RuntimeError("Telegram не настроен")
-    response = session.post(
+    response = get_http_session().post(
         f"{TELEGRAM_API_BASE_URL}/{method}",
         data=data or {},
         timeout=REQUEST_TIMEOUT_SECONDS,
@@ -509,7 +527,7 @@ def max_api_request(
 ) -> dict[str, Any]:
     if not MAX_API_BASE_URL or not MAX_TOKEN:
         raise RuntimeError("MAX не настроен")
-    response = session.request(
+    response = get_http_session().request(
         method,
         f"{MAX_API_BASE_URL}{path}",
         params=params or None,
@@ -769,6 +787,11 @@ def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str
             return item
     return None
 
+def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str, str] | None:
+    for item in get_order_bindings(order):
+        if item["platform"] == platform and item["chat_id"] == chat_id:
+            return item
+    return None
 
 
 def link_customer_to_order(order: dict[str, Any], platform: str, chat_id: str) -> bool:
@@ -2480,10 +2503,67 @@ def initialize_max_profile() -> None:
 
 
 
+def run_telegram_polling(stop_event: threading.Event) -> None:
+    while not stop_event.is_set():
+        try:
+            telegram_updates = fetch_telegram_updates()
+            for update in telegram_updates:
+                try:
+                    with state_lock:
+                        handle_telegram_update(update)
+                except requests.exceptions.RequestException as exc:
+                    print(f"❌ Ошибка requests при обработке Telegram update {update.get('update_id')}: {exc}")
+                except RuntimeError as exc:
+                    print(f"⚠️ Ошибка Telegram API при обработке update {update.get('update_id')}: {exc}")
+                finally:
+                    with state_lock:
+                        state["telegram_last_update_id"] = update.get("update_id")
+                        save_state()
+        except requests.exceptions.Timeout:
+            print("⏳ Таймаут Telegram long polling, продолжаю работу...")
+        except requests.exceptions.ConnectionError:
+            print("🌐 Ошибка соединения Telegram, повтор через несколько секунд...")
+            time.sleep(5)
+        except requests.exceptions.RequestException as exc:
+            print(f"❌ Ошибка requests Telegram: {exc}")
+            time.sleep(5)
+        except RuntimeError as exc:
+            print(f"⚠️ Ошибка API: {exc}")
+            time.sleep(5)
+
+
+
+def run_max_polling(stop_event: threading.Event) -> None:
+    while not stop_event.is_set():
+        try:
+            max_updates = fetch_max_updates()
+            for update in max_updates:
+                try:
+                    with state_lock:
+                        handle_max_update(update)
+                except requests.exceptions.RequestException as exc:
+                    print(f"❌ Ошибка requests при обработке MAX update {update.get('timestamp')}: {exc}")
+                except RuntimeError as exc:
+                    print(f"⚠️ Ошибка MAX API при обработке update {update.get('timestamp')}: {exc}")
+        except requests.exceptions.Timeout:
+            print("⏳ Таймаут MAX long polling, продолжаю работу...")
+        except requests.exceptions.ConnectionError:
+            print("🌐 Ошибка соединения MAX, повтор через несколько секунд...")
+            time.sleep(5)
+        except requests.exceptions.RequestException as exc:
+            print(f"❌ Ошибка requests MAX: {exc}")
+            time.sleep(5)
+        except RuntimeError as exc:
+            print(f"⚠️ Ошибка MAX API: {exc}")
+            time.sleep(5)
+
+
+
 def main() -> None:
     initialize_telegram_profile()
     initialize_max_profile()
-    sync_archives()
+    with state_lock:
+        sync_archives()
     print("🤖 CULT_BOT запущен")
     print(f"🕒 Часовой пояс: {TIMEZONE_NAME}")
     print(f"🗃 Архив заказов: {ARCHIVE_DIR}")
@@ -2495,44 +2575,39 @@ def main() -> None:
         print(f"🔗 MAX deep-link: @{bot_profiles['max']['username']}")
         print("⚠️ MAX long polling подходит для разработки; для production документация MAX рекомендует Webhook.")
 
-    while True:
-        try:
-            telegram_updates = fetch_telegram_updates()
-            for update in telegram_updates:
-                try:
-                    handle_telegram_update(update)
-                except requests.exceptions.RequestException as exc:
-                    print(f"❌ Ошибка requests при обработке Telegram update {update.get('update_id')}: {exc}")
-                except RuntimeError as exc:
-                    print(f"⚠️ Ошибка Telegram API при обработке update {update.get('update_id')}: {exc}")
-                finally:
-                    state["telegram_last_update_id"] = update.get("update_id")
-                    save_state()
+    stop_event = threading.Event()
+    workers: list[threading.Thread] = []
 
-            max_updates = fetch_max_updates()
-            for update in max_updates:
-                try:
-                    handle_max_update(update)
-                except requests.exceptions.RequestException as exc:
-                    print(f"❌ Ошибка requests при обработке MAX update {update.get('timestamp')}: {exc}")
-                except RuntimeError as exc:
-                    print(f"⚠️ Ошибка MAX API при обработке update {update.get('timestamp')}: {exc}")
+    if platform_enabled("telegram"):
+        workers.append(
+            threading.Thread(
+                target=run_telegram_polling,
+                args=(stop_event,),
+                name="telegram-polling",
+                daemon=True,
+            )
+        )
+    if platform_enabled("max"):
+        workers.append(
+            threading.Thread(
+                target=run_max_polling,
+                args=(stop_event,),
+                name="max-polling",
+                daemon=True,
+            )
+        )
 
+    for worker in workers:
+        worker.start()
+
+    try:
+        while True:
             time.sleep(LOOP_INTERVAL_SECONDS)
-        except KeyboardInterrupt:
-            print("\n👋 Выход...")
-            break
-        except requests.exceptions.Timeout:
-            print("⏳ Таймаут long polling, продолжаю работу...")
-        except requests.exceptions.ConnectionError:
-            print("🌐 Ошибка соединения, повтор через несколько секунд...")
-            time.sleep(5)
-        except requests.exceptions.RequestException as exc:
-            print(f"❌ Ошибка requests: {exc}")
-            time.sleep(5)
-        except RuntimeError as exc:
-            print(f"⚠️ Ошибка API: {exc}")
-            time.sleep(5)
+    except KeyboardInterrupt:
+        print("\n👋 Выход...")
+        stop_event.set()
+        for worker in workers:
+            worker.join(timeout=1)
 
 
 if __name__ == "__main__":
