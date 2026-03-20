@@ -250,7 +250,6 @@ def save_orders() -> None:
 
 
 
-
 def save_catalog() -> None:
     with state_lock:
         ensure_parent_dir(CATALOG_FILE)
@@ -571,6 +570,18 @@ def convert_inline_keyboard_for_max(reply_markup: dict[str, Any]) -> list[dict[s
 
 
 
+def get_max_recipient_candidates(chat_id: str) -> list[dict[str, Any]]:
+    raw_chat_id = str(chat_id).strip()
+    if not raw_chat_id:
+        return []
+    if raw_chat_id.startswith("chat:"):
+        return [{"chat_id": raw_chat_id.split(":", maxsplit=1)[1]}]
+    if raw_chat_id.startswith("user:"):
+        return [{"user_id": raw_chat_id.split(":", maxsplit=1)[1]}]
+    return [{"chat_id": raw_chat_id}, {"user_id": raw_chat_id}]
+
+
+
 def send_message(
     platform: str,
     chat_id: str,
@@ -599,8 +610,19 @@ def send_message(
             body["attachments"] = attachments
         if parse_mode:
             body["format"] = parse_mode.lower()
-        result = max_api_request("POST", "/messages", params={"user_id": chat_id}, json_body=body)
-        return result.get("message", result)
+        last_http_error: requests.exceptions.HTTPError | None = None
+        for params in get_max_recipient_candidates(chat_id):
+            try:
+                result = max_api_request("POST", "/messages", params=params, json_body=body)
+                return result.get("message", result)
+            except requests.exceptions.HTTPError as exc:
+                if exc.response is not None and exc.response.status_code == 404:
+                    last_http_error = exc
+                    continue
+                raise
+        if last_http_error is not None:
+            raise last_http_error
+        raise RuntimeError("Не удалось определить получателя для MAX.")
 
     raise ValueError(f"Неизвестная платформа: {platform}")
 
@@ -757,7 +779,12 @@ def is_admin(platform: str, chat_id: str | int) -> bool:
     if platform == "telegram":
         return TELEGRAM_ADMIN_CHAT_ID is not None and str(chat_id) == str(TELEGRAM_ADMIN_CHAT_ID)
     if platform == "max":
-        return MAX_ADMIN_CHAT_ID is not None and str(chat_id) == str(MAX_ADMIN_CHAT_ID)
+        if MAX_ADMIN_CHAT_ID is None:
+            return False
+        normalized_chat_id = str(chat_id)
+        if ":" in normalized_chat_id:
+            normalized_chat_id = normalized_chat_id.split(":", maxsplit=1)[1]
+        return normalized_chat_id == str(MAX_ADMIN_CHAT_ID)
     return False
 
 
@@ -2348,9 +2375,6 @@ def extract_message_id(platform: str, payload: dict[str, Any]) -> str | None:
 
 
 def extract_max_chat_id_from_message(message: dict[str, Any]) -> str | None:
-    sender = message.get("sender") if isinstance(message, dict) else None
-    if isinstance(sender, dict) and sender.get("user_id") is not None:
-        return str(sender["user_id"])
     recipient = message.get("recipient") if isinstance(message, dict) else None
     if isinstance(recipient, dict):
         if recipient.get("chat_id") is not None:
@@ -2363,6 +2387,9 @@ def extract_max_chat_id_from_message(message: dict[str, Any]) -> str | None:
         user = recipient.get("user")
         if isinstance(user, dict) and user.get("user_id") is not None:
             return str(user["user_id"])
+    sender = message.get("sender") if isinstance(message, dict) else None
+    if isinstance(sender, dict) and sender.get("user_id") is not None:
+        return str(sender["user_id"])
     return None
 
 
@@ -2406,7 +2433,27 @@ def handle_telegram_update(update: dict[str, Any]) -> None:
     else:
         send_public_welcome("telegram", str(chat_id))
 
+def handle_max_update(update: dict[str, Any]) -> None:
+    update_type = str(update.get("update_type") or "")
+    if update_type == "bot_started":
+        chat_id = update.get("chat_id")
+        if chat_id is None:
+            return
+        payload = str(update.get("payload") or "")
+        handle_public_start("max", str(chat_id), payload)
+        return
 
+    if update_type == "message_callback":
+        message = update.get("message") or {}
+        callback = update.get("callback") or {}
+        chat_id = extract_max_chat_id_from_message(message)
+        message_id = extract_message_id("max", message)
+        data = str(callback.get("payload") or callback.get("data") or "")
+        callback_id = str(callback.get("callback_id") or "") or None
+        if not chat_id or not message_id:
+            return
+        handle_callback_action("max", chat_id, message_id, data, callback_id)
+        return
 
 def handle_max_update(update: dict[str, Any]) -> None:
     update_type = str(update.get("update_type") or "")
@@ -2528,7 +2575,7 @@ def run_telegram_polling(stop_event: threading.Event) -> None:
             print(f"❌ Ошибка requests Telegram: {exc}")
             time.sleep(5)
         except RuntimeError as exc:
-            print(f"⚠️ Ошибка API: {exc}")
+            print(f"⚠️ Ошибка MAX API: {exc}")
             time.sleep(5)
 
 
