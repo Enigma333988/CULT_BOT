@@ -5,6 +5,7 @@ import secrets
 import threading
 import time
 from datetime import datetime, timedelta, timezone
+from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -158,6 +159,7 @@ bot_profiles: dict[str, dict[str, Any]] = {
     "telegram": {"enabled": bool(TELEGRAM_TOKEN), "username": None, "name": None},
     "max": {"enabled": bool(MAX_TOKEN), "username": None, "name": None},
 }
+max_chat_link_cache: dict[str, str | None] = {}
 
 
 
@@ -498,6 +500,12 @@ def json_dumps(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def split_env_ids(raw_value: str | None) -> set[str]:
+    if raw_value is None:
+        return set()
+    return {item.strip() for item in raw_value.split(",") if item.strip()}
+
+
 
 def telegram_api_request(method: str, *, data: dict[str, Any] | None = None) -> dict[str, Any]:
     if not TELEGRAM_API_BASE_URL:
@@ -755,21 +763,10 @@ def send_admin_message(
         except requests.exceptions.RequestException:
             pass
 
-    reply_markup = build_admin_reply_keyboard() if platform == "telegram" else inline_keyboard
-    result = send_message(platform, chat_id, text, reply_markup=reply_markup, parse_mode=parse_mode)
+    result = send_message(platform, chat_id, text, reply_markup=inline_keyboard, parse_mode=parse_mode)
     new_message_id = extract_message_id(platform, result)
     if new_message_id is not None:
         set_ui_message(actor, new_message_id)
-
-    if platform == "telegram" and inline_keyboard and new_message_id is not None:
-        try:
-            edit_message(platform, chat_id, new_message_id, text, reply_markup=inline_keyboard, parse_mode=parse_mode)
-        except (RuntimeError, requests.exceptions.RequestException):
-            inline_result = send_message(platform, chat_id, text, reply_markup=inline_keyboard, parse_mode=parse_mode)
-            inline_message_id = extract_message_id(platform, inline_result)
-            if inline_message_id is not None:
-                set_ui_message(actor, inline_message_id)
-                return inline_message_id
 
     return new_message_id or ""
 
@@ -779,13 +776,23 @@ def is_admin(platform: str, chat_id: str | int) -> bool:
     if platform == "telegram":
         return TELEGRAM_ADMIN_CHAT_ID is not None and str(chat_id) == str(TELEGRAM_ADMIN_CHAT_ID)
     if platform == "max":
-        if MAX_ADMIN_CHAT_ID is None:
-            return False
-        normalized_chat_id = str(chat_id)
-        if ":" in normalized_chat_id:
-            normalized_chat_id = normalized_chat_id.split(":", maxsplit=1)[1]
-        return normalized_chat_id == str(MAX_ADMIN_CHAT_ID)
+        return is_max_admin_identity(chat_id)
     return False
+
+
+def is_max_admin_identity(raw_value: str | int | None) -> bool:
+    if MAX_ADMIN_CHAT_ID is None or raw_value in {None, ""}:
+        return False
+    value = str(raw_value).strip()
+    configured_ids = split_env_ids(MAX_ADMIN_CHAT_ID)
+    if not configured_ids:
+        return False
+    candidates = {value}
+    normalized_value = value.split(":", maxsplit=1)[1] if ":" in value else value
+    candidates.add(normalized_value)
+    candidates.add(f"user:{normalized_value}")
+    candidates.add(f"chat:{normalized_value}")
+    return any(candidate in configured_ids for candidate in candidates)
 
 
 
@@ -807,12 +814,6 @@ def get_order_bindings(order: dict[str, Any]) -> list[dict[str, str]]:
     return bindings
 
 
-
-def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str, str] | None:
-    for item in get_order_bindings(order):
-        if item["platform"] == platform and item["chat_id"] == chat_id:
-            return item
-    return None
 
 def find_binding(order: dict[str, Any], platform: str, chat_id: str) -> dict[str, str] | None:
     for item in get_order_bindings(order):
@@ -897,6 +898,102 @@ def format_order_link(platform: str, token: str) -> str:
     if platform == "max":
         return f"https://max.ru/{username}?start=order_{token}"
     return token
+
+
+def normalize_max_numeric_id(chat_id: str) -> str | None:
+    raw_value = str(chat_id).strip()
+    if not raw_value:
+        return None
+    if ":" in raw_value:
+        raw_value = raw_value.split(":", maxsplit=1)[1].strip()
+    return raw_value if re.fullmatch(r"-?\d+", raw_value) else None
+
+
+def get_max_dialog_link(chat_id: str) -> str | None:
+    normalized_chat_id = normalize_max_numeric_id(chat_id)
+    if not normalized_chat_id:
+        return None
+    if normalized_chat_id in max_chat_link_cache:
+        return max_chat_link_cache[normalized_chat_id]
+    if not platform_enabled("max"):
+        max_chat_link_cache[normalized_chat_id] = None
+        return None
+    try:
+        chat_payload = max_api_request("GET", f"/chats/{normalized_chat_id}")
+    except (RuntimeError, requests.exceptions.RequestException):
+        max_chat_link_cache[normalized_chat_id] = None
+        return None
+
+    link = chat_payload.get("link")
+    if isinstance(link, str) and link.strip():
+        max_chat_link_cache[normalized_chat_id] = link.strip()
+        return link.strip()
+
+    dialog_with_user = chat_payload.get("dialog_with_user")
+    username = dialog_with_user.get("username") if isinstance(dialog_with_user, dict) else None
+    if isinstance(username, str) and username.strip():
+        resolved_link = f"https://max.ru/{username.strip()}"
+        max_chat_link_cache[normalized_chat_id] = resolved_link
+        return resolved_link
+
+    max_chat_link_cache[normalized_chat_id] = None
+    return None
+
+
+def build_customer_contact_links(order: dict[str, Any]) -> list[tuple[str, str]]:
+    links: list[tuple[str, str]] = []
+    for binding in get_order_bindings(order):
+        chat_id = str(binding["chat_id"])
+        if binding["platform"] == "telegram":
+            normalized_chat_id = normalize_max_numeric_id(chat_id)
+            if normalized_chat_id:
+                links.append(("Telegram клиент", f"tg://user?id={normalized_chat_id}"))
+        elif binding["platform"] == "max":
+            dialog_link = get_max_dialog_link(chat_id)
+            if dialog_link:
+                links.append(("MAX клиент", dialog_link))
+    return links
+
+
+def build_client_share_text(order: dict[str, Any]) -> str:
+    lines = [
+        "Вот ссылки, где можно проверить и отслеживать ваш заказ:",
+        build_order_links_text(order),
+        "",
+        "Если что-то не открывается или нужно уточнение — просто напишите нам.",
+    ]
+    return "\n".join(lines)
+
+
+def render_client_share_html(order: dict[str, Any]) -> str:
+    quick_links = build_customer_contact_links(order)
+    lines = [
+        "✅ Заказ создан.",
+        "",
+        "Готовый текст для отправки клиенту:",
+        f"<pre>{html_escape(build_client_share_text(order))}</pre>",
+    ]
+    if quick_links:
+        quick_lines = ["Быстрый переход к клиенту:"]
+        quick_lines.extend(
+            f'• <a href="{html_escape(url)}">{html_escape(label)}</a>'
+            for label, url in quick_links
+        )
+        lines.extend(["", "\n".join(quick_lines)])
+    return "\n".join(lines)
+
+
+def build_cancel_keyboard() -> dict[str, Any]:
+    return {"inline_keyboard": [[{"text": "🛑 Отмена", "callback_data": "flow:cancel"}]]}
+
+
+def build_prompt_keyboard() -> dict[str, Any]:
+    return {
+        "inline_keyboard": [
+            [{"text": "🛑 Отмена", "callback_data": "flow:cancel"}],
+            [{"text": "⬅️ В меню", "callback_data": "adminmenu:home"}],
+        ]
+    }
 
 
 
@@ -1256,6 +1353,17 @@ def build_socials_keyboard() -> dict[str, Any]:
 
 
 
+def format_admin_order_text(order: dict[str, Any]) -> str:
+    base_text = render_order_text(order, for_admin=True)
+    quick_links = build_customer_contact_links(order)
+    if not quick_links:
+        return base_text
+    lines = ["Быстрый переход к клиенту:"]
+    lines.extend(f"• {label}: {url}" for label, url in quick_links)
+    return f"{base_text}\n\n" + "\n".join(lines)
+
+
+
 def build_admin_home_keyboard() -> dict[str, Any]:
     return {
         "inline_keyboard": [
@@ -1585,6 +1693,7 @@ def send_admin_help(platform: str, chat_id: str) -> None:
         chat_id,
         (
             "Добро пожаловать в панель заказов Культ Мебель.\n\n"
+            "Вся работа ведётся в одном сообщении: открывай разделы кнопками ниже.\n\n"
             "Доступно:\n"
             "• /neworder — создать заказ\n"
             "• /orders — открыть текущие заказы\n"
@@ -1746,7 +1855,12 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
 
     if stripped == "/report":
         set_conversation(actor_key(platform, chat_id), "awaiting_report_period")
-        send_admin_message(platform, chat_id, "Введи период в формате: 22 января 2025_1 сентября 2025")
+        send_admin_message(
+            platform,
+            chat_id,
+            "Введи период в формате: 22 января 2025_1 сентября 2025",
+            inline_keyboard=build_prompt_keyboard(),
+        )
         return
 
     if stripped == "/cancel":
@@ -1822,7 +1936,12 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
             send_admin_message(platform, chat_id, f"Наименование слишком длинное. Лимит — {MAX_TITLE_LENGTH} символов.")
             return
         set_conversation(actor_key(platform, chat_id), "awaiting_catalog_price", draft={"title": cleaned_text})
-        send_admin_message(platform, chat_id, "Теперь введи цену товара, например: 42000")
+        send_admin_message(
+            platform,
+            chat_id,
+            "Теперь введи цену товара, например: 42000",
+            inline_keyboard=build_prompt_keyboard(),
+        )
         return
 
     if step == "awaiting_catalog_price":
@@ -1867,8 +1986,14 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         send_admin_message(
             platform,
             chat_id,
-            f"✅ Заказ создан.\n\n{render_order_text(order, for_admin=True)}",
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
+        )
+        send_message(
+            platform,
+            chat_id,
+            render_client_share_html(order),
+            parse_mode="HTML",
         )
         return
 
@@ -1889,7 +2014,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         send_admin_message(
             platform,
             chat_id,
-            f"✅ Оплата обновлена.\n\n{render_order_text(order, for_admin=True)}",
+            f"✅ Оплата обновлена.\n\n{format_admin_order_text(order)}",
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -1901,7 +2026,12 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
             send_admin_message(platform, chat_id, "Заказ не найден.", inline_keyboard=build_orders_list_keyboard())
             return
         if not cleaned_text:
-            send_admin_message(platform, chat_id, "Укажи дату и время доставки, например: 20 января, 20:00")
+            send_admin_message(
+                platform,
+                chat_id,
+                "Укажи дату и время доставки, например: 20 января, 20:00",
+                inline_keyboard=build_prompt_keyboard(),
+            )
             return
         set_delivery_schedule(order, cleaned_text)
         clear_conversation(actor_key(platform, chat_id))
@@ -1909,7 +2039,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         send_admin_message(
             platform,
             chat_id,
-            f"✅ Доставка запланирована.\n\n{render_order_text(order, for_admin=True)}",
+            f"✅ Доставка запланирована.\n\n{format_admin_order_text(order)}",
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2058,7 +2188,22 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
 
     if data == "adminmenu:report":
         set_conversation(actor_key(platform, chat_id_str), "awaiting_report_period")
-        send_admin_message(platform, chat_id_str, "Введи период в формате: 22 января 2025_1 сентября 2025")
+        send_admin_message(
+            platform,
+            chat_id_str,
+            "Введи период в формате: 22 января 2025_1 сентября 2025",
+            inline_keyboard=build_prompt_keyboard(),
+        )
+        return
+
+    if data == "flow:cancel":
+        clear_conversation(actor_key(platform, chat_id_str))
+        send_admin_message(
+            platform,
+            chat_id_str,
+            "🛑 Текущее действие отменено.",
+            inline_keyboard=build_admin_home_keyboard(),
+        )
         return
 
     if data == "catalog:list":
@@ -2067,7 +2212,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
 
     if data == "catalog:add":
         set_conversation(actor_key(platform, chat_id_str), "awaiting_catalog_title")
-        send_admin_message(platform, chat_id_str, "Введи название товара для каталога, например: Кровать 160х200")
+        send_admin_message(
+            platform,
+            chat_id_str,
+            "Введи название товара для каталога, например: Кровать 160х200",
+            inline_keyboard=build_prompt_keyboard(),
+        )
         return
 
     if data.startswith("catalog:view:"):
@@ -2114,7 +2264,9 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
             platform,
             chat_id_str,
             f"Товар выбран:\n{item['title']}\nЦена: {format_price(item['total_price'])}\n\nВыбери, сколько уже оплачено:",
-            inline_keyboard=build_payment_choice_keyboard(),
+            inline_keyboard={
+                "inline_keyboard": build_payment_choice_keyboard()["inline_keyboard"] + build_cancel_keyboard()["inline_keyboard"]
+            },
         )
         return
 
@@ -2137,7 +2289,9 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
                 f"Оплачено: {percent}% ({format_price(draft['paid_amount'])} из {format_price(draft['total_price'])})\n\n"
                 "Нужна доставка?"
             ),
-            inline_keyboard=build_delivery_choice_keyboard(),
+            inline_keyboard={
+                "inline_keyboard": build_delivery_choice_keyboard()["inline_keyboard"] + build_cancel_keyboard()["inline_keyboard"]
+            },
         )
         return
 
@@ -2159,6 +2313,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
                 f"Доставка: {'Да' if draft['has_delivery'] else 'Нет'}\n\n"
                 "Теперь отправь примечание. Если примечания нет — отправь одиночный символ -"
             ),
+            inline_keyboard=build_prompt_keyboard(),
         )
         return
 
@@ -2175,7 +2330,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            render_order_text(order, for_admin=True),
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2192,14 +2347,19 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
             return
         if status_key == "awaiting_delivery":
             set_conversation(actor_key(platform, chat_id_str), "awaiting_delivery_schedule", order_id=order["id"])
-            send_admin_message(platform, chat_id_str, "Укажи дату и время доставки, например: 20 января, 20:00")
+            send_admin_message(
+                platform,
+                chat_id_str,
+                "Укажи дату и время доставки, например: 20 января, 20:00",
+                inline_keyboard=build_prompt_keyboard(),
+            )
             return
         update_order_status(order, status_key)
         notify_customer_order_update(order, f"По заказу #{order['id']} обновлён статус: {get_status_label(status_key)}.")
         send_admin_message(
             platform,
             chat_id_str,
-            render_order_text(order, for_admin=True),
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2218,7 +2378,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            render_order_text(order, for_admin=True),
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2234,7 +2394,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            render_order_text(order, for_admin=True),
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2246,7 +2406,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
             send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
             return
         set_conversation(actor_key(platform, chat_id_str), "awaiting_payment_add", order_id=order_id)
-        send_admin_message(platform, chat_id_str, "Введи сумму доплаты в рублях, например: 5000")
+        send_admin_message(
+            platform,
+            chat_id_str,
+            "Введи сумму доплаты в рублях, например: 5000",
+            inline_keyboard=build_prompt_keyboard(),
+        )
         return
 
     if data.startswith("admin:finish:"):
@@ -2288,7 +2453,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            render_order_text(order, for_admin=True),
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2342,7 +2507,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            render_order_text(order, for_admin=True),
+            format_admin_order_text(order),
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2374,23 +2539,64 @@ def extract_message_id(platform: str, payload: dict[str, Any]) -> str | None:
 
 
 
-def extract_max_chat_id_from_message(message: dict[str, Any]) -> str | None:
+def extract_max_message_peer_id(message: dict[str, Any]) -> str | None:
     recipient = message.get("recipient") if isinstance(message, dict) else None
     if isinstance(recipient, dict):
         if recipient.get("chat_id") is not None:
-            return str(recipient["chat_id"])
+            return f"chat:{recipient['chat_id']}"
         if recipient.get("user_id") is not None:
-            return str(recipient["user_id"])
+            return f"user:{recipient['user_id']}"
         chat = recipient.get("chat")
         if isinstance(chat, dict) and chat.get("chat_id") is not None:
-            return str(chat["chat_id"])
+            return f"chat:{chat['chat_id']}"
         user = recipient.get("user")
         if isinstance(user, dict) and user.get("user_id") is not None:
-            return str(user["user_id"])
+            return f"user:{user['user_id']}"
     sender = message.get("sender") if isinstance(message, dict) else None
     if isinstance(sender, dict) and sender.get("user_id") is not None:
-        return str(sender["user_id"])
+        return f"user:{sender['user_id']}"
     return None
+
+
+def extract_max_chat_id_from_message(message: dict[str, Any]) -> str | None:
+    sender = message.get("sender") if isinstance(message, dict) else None
+    if isinstance(sender, dict) and sender.get("user_id") is not None:
+        return f"user:{sender['user_id']}"
+    return extract_max_message_peer_id(message)
+
+
+def extract_max_admin_identity_candidates(update: dict[str, Any]) -> set[str]:
+    candidates: set[str] = set()
+    raw_update_chat_id = update.get("chat_id")
+    if raw_update_chat_id not in {None, ""}:
+        raw_value = str(raw_update_chat_id).strip()
+        candidates.add(raw_value)
+        candidates.add(f"chat:{raw_value}")
+        candidates.add(f"user:{raw_value}")
+
+    message = update.get("message") if isinstance(update, dict) else None
+    if isinstance(message, dict):
+        sender = message.get("sender")
+        if isinstance(sender, dict) and sender.get("user_id") is not None:
+            candidates.add(str(sender["user_id"]))
+            candidates.add(f"user:{sender['user_id']}")
+        recipient = message.get("recipient")
+        if isinstance(recipient, dict):
+            if recipient.get("chat_id") is not None:
+                candidates.add(str(recipient["chat_id"]))
+                candidates.add(f"chat:{recipient['chat_id']}")
+            if recipient.get("user_id") is not None:
+                candidates.add(str(recipient["user_id"]))
+                candidates.add(f"user:{recipient['user_id']}")
+            chat = recipient.get("chat")
+            if isinstance(chat, dict) and chat.get("chat_id") is not None:
+                candidates.add(str(chat["chat_id"]))
+                candidates.add(f"chat:{chat['chat_id']}")
+            user = recipient.get("user")
+            if isinstance(user, dict) and user.get("user_id") is not None:
+                candidates.add(str(user["user_id"]))
+                candidates.add(f"user:{user['user_id']}")
+    return {item for item in candidates if item}
 
 
 
@@ -2446,29 +2652,7 @@ def handle_max_update(update: dict[str, Any]) -> None:
     if update_type == "message_callback":
         message = update.get("message") or {}
         callback = update.get("callback") or {}
-        chat_id = extract_max_chat_id_from_message(message)
-        message_id = extract_message_id("max", message)
-        data = str(callback.get("payload") or callback.get("data") or "")
-        callback_id = str(callback.get("callback_id") or "") or None
-        if not chat_id or not message_id:
-            return
-        handle_callback_action("max", chat_id, message_id, data, callback_id)
-        return
-
-def handle_max_update(update: dict[str, Any]) -> None:
-    update_type = str(update.get("update_type") or "")
-    if update_type == "bot_started":
-        chat_id = update.get("chat_id")
-        if chat_id is None:
-            return
-        payload = str(update.get("payload") or "")
-        handle_public_start("max", str(chat_id), payload)
-        return
-
-    if update_type == "message_callback":
-        message = update.get("message") or {}
-        callback = update.get("callback") or {}
-        chat_id = extract_max_chat_id_from_message(message)
+        chat_id = extract_max_message_peer_id(message)
         message_id = extract_message_id("max", message)
         data = str(callback.get("payload") or callback.get("data") or "")
         callback_id = str(callback.get("callback_id") or "") or None
@@ -2487,9 +2671,11 @@ def handle_max_update(update: dict[str, Any]) -> None:
         return
     if text:
         handle_text_message("max", chat_id, text, extract_message_id("max", message))
+        if any(is_max_admin_identity(candidate) for candidate in extract_max_admin_identity_candidates(update)):
+            safe_delete_message("max", chat_id, extract_message_id("max", message))
         return
 
-    if is_admin("max", chat_id):
+    if any(is_max_admin_identity(candidate) for candidate in extract_max_admin_identity_candidates(update)):
         send_admin_message("max", chat_id, "Поддерживаются текстовые команды и сообщения.")
     else:
         send_public_welcome("max", chat_id)
