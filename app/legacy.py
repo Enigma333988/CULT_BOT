@@ -2,6 +2,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -216,6 +217,34 @@ def ensure_dir(path: Path) -> None:
 
 
 
+def atomic_write_text(path: Path, content: str, *, encoding: str = "utf-8") -> None:
+    ensure_parent_dir(path)
+    temp_path = path.with_name(f"{path.name}.tmp")
+    temp_path.write_text(content, encoding=encoding)
+    os.replace(temp_path, path)
+
+
+
+def quarantine_corrupted_file(path: Path) -> Path | None:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    backup_path = path.with_name(f"{path.name}.corrupted.{timestamp}")
+    try:
+        shutil.copy2(path, backup_path)
+    except OSError:
+        return None
+    return backup_path
+
+
+
+def console_print(message: str) -> None:
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        fallback = message.encode("unicode_escape", errors="backslashreplace").decode("ascii")
+        print(fallback)
+
+
+
 def load_json(path: Path, fallback: Any) -> Any:
     if not path.exists():
         return fallback
@@ -224,6 +253,11 @@ def load_json(path: Path, fallback: Any) -> Any:
         with path.open("r", encoding="utf-8") as file:
             return json.load(file)
     except (OSError, json.JSONDecodeError):
+        backup_path = quarantine_corrupted_file(path)
+        if backup_path is not None:
+            console_print(f"⚠️ Не удалось прочитать {path}. Создана резервная копия: {backup_path}")
+        else:
+            console_print(f"⚠️ Не удалось прочитать {path}. Использую резервное значение в памяти.")
         return fallback
 
 
@@ -235,30 +269,27 @@ catalog_items: list[dict[str, Any]] = load_json(CATALOG_FILE, [])
 
 def save_state() -> None:
     with state_lock:
-        ensure_parent_dir(STATE_FILE)
-        STATE_FILE.write_text(
+        atomic_write_text(
+            STATE_FILE,
             json.dumps(state, ensure_ascii=False, indent=2),
-            encoding="utf-8",
         )
 
 
 
 def save_orders() -> None:
     with state_lock:
-        ensure_parent_dir(ORDERS_FILE)
-        ORDERS_FILE.write_text(
+        atomic_write_text(
+            ORDERS_FILE,
             json.dumps(orders, ensure_ascii=False, indent=2),
-            encoding="utf-8",
         )
 
 
 
 def save_catalog() -> None:
     with state_lock:
-        ensure_parent_dir(CATALOG_FILE)
-        CATALOG_FILE.write_text(
+        atomic_write_text(
+            CATALOG_FILE,
             json.dumps(catalog_items, ensure_ascii=False, indent=2),
-            encoding="utf-8",
         )
 
 
@@ -1133,7 +1164,7 @@ def write_order_archive(order: dict[str, Any], lifecycle_state: str) -> None:
             indent=2,
         )
     )
-    archive_file_path(order["id"]).write_text("\n".join(lines), encoding="utf-8")
+    atomic_write_text(archive_file_path(order["id"]), "\n".join(lines))
 
 
 
@@ -2655,10 +2686,10 @@ def log_max_admin_candidates(update: dict[str, Any]) -> None:
     if cache_key in logged_max_admin_candidates:
         return
     logged_max_admin_candidates.add(cache_key)
-    print("🆔 MAX admin ID candidates detected:")
-    print(f"   candidates: {', '.join(candidates)}")
-    print(f"   current MAX_ADMIN_CHAT_ID: {MAX_ADMIN_CHAT_ID}")
-    print("   ↑ Возьми нужный ID из candidates и укажи его в .env как MAX_ADMIN_CHAT_ID")
+    console_print("🆔 MAX admin ID candidates detected:")
+    console_print(f"   candidates: {', '.join(candidates)}")
+    console_print(f"   current MAX_ADMIN_CHAT_ID: {MAX_ADMIN_CHAT_ID}")
+    console_print("   ↑ Возьми нужный ID из candidates и укажи его в .env как MAX_ADMIN_CHAT_ID")
 
 
 def extract_matching_max_admin_actor_id(update: dict[str, Any]) -> str | None:
@@ -2788,10 +2819,22 @@ def fetch_max_updates() -> list[dict[str, Any]]:
     if marker is not None:
         params["marker"] = marker
     payload = max_api_request("GET", "/updates", params=params)
-    if payload.get("marker") is not None:
-        state["max_marker"] = payload.get("marker")
-        save_state()
     return payload.get("updates", [])
+
+
+
+def fetch_max_updates_batch() -> tuple[list[dict[str, Any]], Any]:
+    if not platform_enabled("max"):
+        return [], None
+    params: dict[str, Any] = {
+        "timeout": MAX_POLL_TIMEOUT_SECONDS,
+        "types": ",".join(MAX_UPDATE_TYPES),
+    }
+    marker = state.get("max_marker")
+    if marker is not None:
+        params["marker"] = marker
+    payload = max_api_request("GET", "/updates", params=params)
+    return payload.get("updates", []), payload.get("marker")
 
 
 
@@ -2826,24 +2869,27 @@ def run_telegram_polling(stop_event: threading.Event) -> None:
                 try:
                     with state_lock:
                         handle_telegram_update(update)
-                except requests.exceptions.RequestException as exc:
-                    print(f"❌ Ошибка requests при обработке Telegram update {update.get('update_id')}: {exc}")
-                except RuntimeError as exc:
-                    print(f"⚠️ Ошибка Telegram API при обработке update {update.get('update_id')}: {exc}")
-                finally:
-                    with state_lock:
                         state["telegram_last_update_id"] = update.get("update_id")
                         save_state()
+                except requests.exceptions.RequestException as exc:
+                    console_print(f"❌ Ошибка requests при обработке Telegram update {update.get('update_id')}: {exc}")
+                    break
+                except RuntimeError as exc:
+                    console_print(f"⚠️ Ошибка Telegram API при обработке update {update.get('update_id')}: {exc}")
+                    break
+                except Exception as exc:
+                    console_print(f"❌ Неожиданная ошибка при обработке Telegram update {update.get('update_id')}: {exc}")
+                    break
         except requests.exceptions.Timeout:
-            print("⏳ Таймаут Telegram long polling, продолжаю работу...")
+            console_print("⏳ Таймаут Telegram long polling, продолжаю работу...")
         except requests.exceptions.ConnectionError:
-            print("🌐 Ошибка соединения Telegram, повтор через несколько секунд...")
+            console_print("🌐 Ошибка соединения Telegram, повтор через несколько секунд...")
             time.sleep(5)
         except requests.exceptions.RequestException as exc:
-            print(f"❌ Ошибка requests Telegram: {exc}")
+            console_print(f"❌ Ошибка requests Telegram: {exc}")
             time.sleep(5)
         except RuntimeError as exc:
-            print(f"⚠️ Ошибка MAX API: {exc}")
+            console_print(f"⚠️ Ошибка MAX API: {exc}")
             time.sleep(5)
 
 
@@ -2851,25 +2897,38 @@ def run_telegram_polling(stop_event: threading.Event) -> None:
 def run_max_polling(stop_event: threading.Event) -> None:
     while not stop_event.is_set():
         try:
-            max_updates = fetch_max_updates()
+            max_updates, next_marker = fetch_max_updates_batch()
+            batch_processed = True
             for update in max_updates:
                 try:
                     with state_lock:
                         handle_max_update(update)
                 except requests.exceptions.RequestException as exc:
-                    print(f"❌ Ошибка requests при обработке MAX update {update.get('timestamp')}: {exc}")
+                    batch_processed = False
+                    console_print(f"❌ Ошибка requests при обработке MAX update {update.get('timestamp')}: {exc}")
+                    break
                 except RuntimeError as exc:
-                    print(f"⚠️ Ошибка MAX API при обработке update {update.get('timestamp')}: {exc}")
+                    batch_processed = False
+                    console_print(f"⚠️ Ошибка MAX API при обработке update {update.get('timestamp')}: {exc}")
+                    break
+                except Exception as exc:
+                    batch_processed = False
+                    console_print(f"❌ Неожиданная ошибка при обработке MAX update {update.get('timestamp')}: {exc}")
+                    break
+            if batch_processed and next_marker is not None:
+                with state_lock:
+                    state["max_marker"] = next_marker
+                    save_state()
         except requests.exceptions.Timeout:
-            print("⏳ Таймаут MAX long polling, продолжаю работу...")
+            console_print("⏳ Таймаут MAX long polling, продолжаю работу...")
         except requests.exceptions.ConnectionError:
-            print("🌐 Ошибка соединения MAX, повтор через несколько секунд...")
+            console_print("🌐 Ошибка соединения MAX, повтор через несколько секунд...")
             time.sleep(5)
         except requests.exceptions.RequestException as exc:
-            print(f"❌ Ошибка requests MAX: {exc}")
+            console_print(f"❌ Ошибка requests MAX: {exc}")
             time.sleep(5)
         except RuntimeError as exc:
-            print(f"⚠️ Ошибка MAX API: {exc}")
+            console_print(f"⚠️ Ошибка MAX API: {exc}")
             time.sleep(5)
 
 
@@ -2879,16 +2938,16 @@ def main() -> None:
     initialize_max_profile()
     with state_lock:
         sync_archives()
-    print("🤖 CULT_BOT запущен")
-    print(f"🕒 Часовой пояс: {TIMEZONE_NAME}")
-    print(f"🗃 Архив заказов: {ARCHIVE_DIR}")
+    console_print("🤖 CULT_BOT запущен")
+    console_print(f"🕒 Часовой пояс: {TIMEZONE_NAME}")
+    console_print(f"🗃 Архив заказов: {ARCHIVE_DIR}")
     if platform_enabled("telegram"):
-        print(f"📨 Telegram admin chat_id={TELEGRAM_ADMIN_CHAT_ID}")
-        print(f"🔗 Telegram deep-link: @{bot_profiles['telegram']['username']}")
+        console_print(f"📨 Telegram admin chat_id={TELEGRAM_ADMIN_CHAT_ID}")
+        console_print(f"🔗 Telegram deep-link: @{bot_profiles['telegram']['username']}")
     if platform_enabled("max"):
-        print(f"📨 MAX admin chat_id={MAX_ADMIN_CHAT_ID}")
-        print(f"🔗 MAX deep-link: @{bot_profiles['max']['username']}")
-        print("⚠️ MAX long polling подходит для разработки; для production документация MAX рекомендует Webhook.")
+        console_print(f"📨 MAX admin chat_id={MAX_ADMIN_CHAT_ID}")
+        console_print(f"🔗 MAX deep-link: @{bot_profiles['max']['username']}")
+        console_print("⚠️ MAX long polling подходит для разработки; для production документация MAX рекомендует Webhook.")
 
     stop_event = threading.Event()
     workers: list[threading.Thread] = []
@@ -2919,7 +2978,7 @@ def main() -> None:
         while True:
             time.sleep(LOOP_INTERVAL_SECONDS)
     except KeyboardInterrupt:
-        print("\n👋 Выход...")
+        console_print("\n👋 Выход...")
         stop_event.set()
         for worker in workers:
             worker.join(timeout=1)
