@@ -71,6 +71,11 @@ ORDERS_FILE=orders.json
 STATE_FILE=bot_state.json
 ARCHIVE_DIR=archive
 CATALOG_FILE=catalog.json
+MINI_APP_TITLE=CULT Mini App
+MINI_APP_BUTTON_TEXT=Открыть приложение
+MINI_APP_HOST=127.0.0.1
+MINI_APP_PORT=8080
+MINI_APP_PUBLIC_URL=
 ```
 
 ### Переменные окружения
@@ -87,6 +92,11 @@ CATALOG_FILE=catalog.json
 | `STATE_FILE` | Нет | Путь к JSON-файлу со служебным состоянием polling |
 | `ARCHIVE_DIR` | Нет | Папка, где хранятся текстовые архивы заказов |
 | `CATALOG_FILE` | Нет | Путь к JSON-файлу каталога товаров |
+| `MINI_APP_TITLE` | Нет | Заголовок стартовой страницы Mini App |
+| `MINI_APP_BUTTON_TEXT` | Нет | Текст кнопки открытия Mini App в Telegram |
+| `MINI_APP_HOST` | Нет | Локальный host для HTTP-сервера Mini App |
+| `MINI_APP_PORT` | Нет | Локальный port для HTTP-сервера Mini App |
+| `MINI_APP_PUBLIC_URL` | Нет | Публичный `https://` URL, который Telegram откроет как Mini App |
 
 \* Нужно указать хотя бы один токен: `TOKEN` или `MAX_TOKEN`.
 
@@ -101,6 +111,14 @@ python bot.py
 ```
 
 Если настроены оба токена, процесс будет одновременно слушать Telegram и MAX.
+
+### Mini App
+
+При том же запуске бот поднимает минимальную web-страницу Mini App на `http://127.0.0.1:8080/` или на значениях из `MINI_APP_HOST` и `MINI_APP_PORT`.
+
+Чтобы Telegram открывал эту страницу прямо внутри приложения, нужно указать `MINI_APP_PUBLIC_URL` с публичным `https://` адресом. После этого бот зарегистрирует кнопку меню и команду `/miniapp` для запуска Mini App.
+
+Для простой публикации на обычном хостинге без Python можно использовать готовый статический файл [miniapp/index.html](/C:/Users/shiro/Desktop/CULT_BOT/miniapp/index.html). В нём уже есть базовое определение среды `browser / telegram / max` и стартовая bridge-обвязка для Telegram и MAX.
 
 > Сейчас интеграция с MAX работает через **long polling**. Для production документация MAX рекомендует использовать **Webhook**.
 

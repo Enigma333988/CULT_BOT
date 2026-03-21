@@ -15,6 +15,8 @@ from zoneinfo import ZoneInfo
 import requests
 from dotenv import load_dotenv
 
+from .webapp import MiniAppServer
+
 load_dotenv()
 
 
@@ -67,6 +69,11 @@ MENU_LABEL = "Меню"
 CONTACT_URL = "https://t.me/cultmebel?direct"
 VK_URL = "https://vk.com/cultmebel"
 TG_URL = "https://t.me/cultmebel"
+MINI_APP_TITLE = get_env_value("MINI_APP_TITLE", "CULT Mini App")
+MINI_APP_BUTTON_TEXT = get_env_value("MINI_APP_BUTTON_TEXT", "Открыть приложение")
+MINI_APP_HOST = get_env_value("MINI_APP_HOST", "127.0.0.1")
+MINI_APP_PORT_RAW = get_env_value("MINI_APP_PORT", "8080")
+MINI_APP_PUBLIC_URL = get_env_value("MINI_APP_PUBLIC_URL")
 PAYMENT_OPTIONS = {
     "0": 0,
     "50": 50,
@@ -128,6 +135,19 @@ if PROXY:
         raise ValueError(
             "❌ Некорректная схема PROXY. Используй http://, https://, socks5:// или socks5h://"
         )
+
+try:
+    MINI_APP_PORT = int(MINI_APP_PORT_RAW or "8080")
+except ValueError as exc:
+    raise ValueError("❌ MINI_APP_PORT должен быть целым числом.") from exc
+
+if not 1 <= MINI_APP_PORT <= 65535:
+    raise ValueError("❌ MINI_APP_PORT должен быть в диапазоне 1..65535.")
+
+if MINI_APP_PUBLIC_URL:
+    parsed_mini_app_url = urlparse(MINI_APP_PUBLIC_URL)
+    if parsed_mini_app_url.scheme.lower() != "https" or not parsed_mini_app_url.netloc:
+        raise ValueError("❌ MINI_APP_PUBLIC_URL должен быть корректным HTTPS URL.")
 
 try:
     LOCAL_TZ = ZoneInfo(TIMEZONE_NAME)
@@ -555,6 +575,40 @@ def telegram_api_request(method: str, *, data: dict[str, Any] | None = None) -> 
         raise RuntimeError(f"Telegram API error in {method}: {description}")
     return payload
 
+
+
+def get_local_mini_app_url() -> str:
+    return f"http://{MINI_APP_HOST}:{MINI_APP_PORT}/"
+
+
+def build_telegram_mini_app_button() -> dict[str, Any] | None:
+    if not MINI_APP_PUBLIC_URL:
+        return None
+    return {"text": MINI_APP_BUTTON_TEXT, "web_app": {"url": MINI_APP_PUBLIC_URL}}
+
+
+def build_telegram_mini_app_inline_keyboard() -> dict[str, Any] | None:
+    button = build_telegram_mini_app_button()
+    if button is None:
+        return None
+    return {"inline_keyboard": [[button]]}
+
+
+def register_telegram_mini_app_menu_button() -> None:
+    if not platform_enabled("telegram") or not MINI_APP_PUBLIC_URL:
+        return
+    telegram_api_request(
+        "setChatMenuButton",
+        data={
+            "menu_button": json_dumps(
+                {
+                    "type": "web_app",
+                    "text": MINI_APP_BUTTON_TEXT,
+                    "web_app": {"url": MINI_APP_PUBLIC_URL},
+                }
+            )
+        },
+    )
 
 
 def max_api_request(
@@ -1742,6 +1796,12 @@ def notify_customer_order_update(order: dict[str, Any], intro_text: str) -> None
 
 
 def send_public_welcome(platform: str, chat_id: str) -> None:
+    reply_markup = build_public_keyboard(platform, chat_id)
+    mini_app_keyboard = build_telegram_mini_app_inline_keyboard() if platform == "telegram" else None
+    if mini_app_keyboard:
+        reply_markup = {
+            "inline_keyboard": mini_app_keyboard["inline_keyboard"] + reply_markup["inline_keyboard"]
+        }
     send_message(
         platform,
         chat_id,
@@ -1750,7 +1810,7 @@ def send_public_welcome(platform: str, chat_id: str) -> None:
             "Если менеджер уже отправил вам персональную ссылку — откройте её, и бот покажет статус заказа.\n"
             "Если ссылки ещё нет, напишите нам — поможем оформить заказ и ответим на вопросы."
         ),
-        reply_markup=build_public_keyboard(platform, chat_id),
+        reply_markup=reply_markup,
     )
 
 
@@ -1895,6 +1955,24 @@ def open_catalog(platform: str, chat_id: str) -> None:
 def handle_command(platform: str, chat_id: str, text: str) -> None:
     stripped = text.strip()
     if not is_admin(platform, chat_id):
+        if stripped == "/miniapp":
+            if platform == "telegram" and MINI_APP_PUBLIC_URL:
+                send_message(
+                    platform,
+                    chat_id,
+                    "Mini App готов. Нажмите кнопку ниже, чтобы открыть приложение внутри Telegram.",
+                    reply_markup=build_telegram_mini_app_inline_keyboard(),
+                )
+                return
+            send_message(
+                platform,
+                chat_id,
+                (
+                    f"Локальный адрес Mini App: {get_local_mini_app_url()}\n"
+                    "Чтобы Mini App открывался прямо внутри Telegram, укажите публичный HTTPS URL в MINI_APP_PUBLIC_URL."
+                ),
+            )
+            return
         if stripped.startswith("/start"):
             parts = stripped.split(maxsplit=1)
             payload = parts[1].strip() if len(parts) > 1 else ""
@@ -1906,6 +1984,26 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
     if stripped == MENU_LABEL or stripped.startswith("/start"):
         clear_conversation(actor_key(platform, chat_id))
         send_admin_help(platform, chat_id)
+        return
+
+    if stripped == "/miniapp":
+        if platform == "telegram" and MINI_APP_PUBLIC_URL:
+            send_message(
+                platform,
+                chat_id,
+                "Mini App готов. Нажмите кнопку ниже, чтобы открыть приложение внутри Telegram.",
+                reply_markup=build_telegram_mini_app_inline_keyboard(),
+            )
+            return
+        send_admin_message(
+            platform,
+            chat_id,
+            (
+                f"Локальный адрес Mini App: {get_local_mini_app_url()}\n"
+                "Для запуска внутри Telegram нужен публичный HTTPS URL в MINI_APP_PUBLIC_URL."
+            ),
+            force_new=True,
+        )
         return
 
     if stripped == "/neworder":
@@ -2934,10 +3032,18 @@ def run_max_polling(stop_event: threading.Event) -> None:
 
 
 def main() -> None:
+    mini_app_server = MiniAppServer(MINI_APP_HOST, MINI_APP_PORT, MINI_APP_TITLE, logger=console_print)
+    local_mini_app_url = mini_app_server.start()
     initialize_telegram_profile()
     initialize_max_profile()
+    register_telegram_mini_app_menu_button()
     with state_lock:
         sync_archives()
+    console_print(f"Mini App local URL: {local_mini_app_url}")
+    if MINI_APP_PUBLIC_URL:
+        console_print(f"Mini App public URL: {MINI_APP_PUBLIC_URL}")
+    else:
+        console_print("MINI_APP_PUBLIC_URL is not set. Mini App is available locally, but Telegram will not open it inside the app yet.")
     console_print("🤖 CULT_BOT запущен")
     console_print(f"🕒 Часовой пояс: {TIMEZONE_NAME}")
     console_print(f"🗃 Архив заказов: {ARCHIVE_DIR}")
@@ -2982,6 +3088,10 @@ def main() -> None:
         stop_event.set()
         for worker in workers:
             worker.join(timeout=1)
+
+
+    finally:
+        mini_app_server.stop()
 
 
 if __name__ == "__main__":

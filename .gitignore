@@ -6,3 +6,4 @@ orders.json
 catalog.json
 bot_state.json
 archive/
+backup_*/
