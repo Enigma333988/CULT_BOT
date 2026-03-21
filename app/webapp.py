@@ -154,6 +154,7 @@ def build_mini_app_html(title: str) -> str:
     </p>
 
     <section class="chips">
+      <span class="chip warn" id="version-chip">Build: 2026-03-22-01</span>
       <span class="chip ok" id="env-chip">Environment: loading</span>
       <span class="chip ok" id="telegram-chip">Telegram bridge: pending</span>
       <span class="chip ok" id="max-chip">MAX bridge: pending</span>
