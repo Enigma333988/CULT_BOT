@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Status Standalone</title>
+  <style>
+    :root {
+      --orange: #ff6c36;
+      --orange-soft: #ffae91;
+      --text: #454545;
+      --muted: #747474;
+      --panel: #efefef;
+      --image-bg: #d9d9d9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #d8d8d8;
+      font-family: Montserrat, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: start center;
+      padding: 18px 10px;
+    }
+
+    .frame {
+      position: relative;
+      width: 360px;
+      height: 1161.33px;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.12);
+    }
+
+    .hero {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 156px;
+      background: var(--orange);
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      left: -15px;
+      top: -35px;
+      width: 390px;
+      height: 156px;
+      opacity: 0.15;
+      background:
+        radial-gradient(circle at 107px 77px, #fff 0 18px, transparent 19px),
+        radial-gradient(circle at 199px 35px, #000 0 18px, transparent 19px),
+        radial-gradient(circle at 291px 77px, #fff 0 18px, transparent 19px),
+        radial-gradient(circle at 107px 161px, #000 0 18px, transparent 19px),
+        radial-gradient(circle at 199px 119px, #fff 0 18px, transparent 19px),
+        radial-gradient(circle at 291px 161px, #000 0 18px, transparent 19px);
+      background-repeat: no-repeat;
+    }
+
+    .brand {
+      position: absolute;
+      top: 67.44px;
+      left: 128.58px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      color: #252525;
+      line-height: 1;
+    }
+
+    .brand__main {
+      display: flex;
+      gap: 5px;
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: -0.06em;
+      text-transform: lowercase;
+    }
+
+    .brand__lab {
+      position: absolute;
+      left: 118px;
+      top: 34px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #894831;
+      letter-spacing: 0.04em;
+      text-transform: lowercase;
+    }
+
+    .product-card {
+      position: absolute;
+      left: 23px;
+      top: 90.67px;
+      width: 314px;
+      height: 449px;
+    }
+
+    .product-image {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 314px;
+      height: 235px;
+      border-radius: 16.33px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .product-image::before {
+      content: "";
+      position: absolute;
+      left: 60px;
+      top: 29px;
+      width: 194px;
+      height: 147px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.35), rgba(0,0,0,0.08)),
+        var(--image-bg);
+    }
+
+    .placeholder {
+      position: absolute;
+      left: 57.5px;
+      top: 198.33px;
+      width: 199px;
+      text-align: center;
+      color: var(--orange);
+      font-size: 10.67px;
+      line-height: 1.2;
+      font-weight: 600;
+    }
+
+    .order-number {
+      position: absolute;
+      left: 86.28px;
+      top: 246.66px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 500;
+    }
+
+    .order-number strong {
+      font-weight: 600;
+    }
+
+    .copy {
+      position: relative;
+      width: 12.56px;
+      height: 12.56px;
+    }
+
+    .copy::before,
+    .copy::after {
+      content: "";
+      position: absolute;
+      width: 8.56px;
+      height: 8.56px;
+      border: 1.33px solid var(--orange);
+      border-radius: 0;
+    }
+
+    .copy::before {
+      left: 3.67px;
+      top: 3.67px;
+    }
+
+    .copy::after {
+      left: 0;
+      top: 0;
+    }
+
+    .product-title {
+      position: absolute;
+      left: 0;
+      top: 268.66px;
+      width: 314px;
+      margin: 0;
+      color: var(--orange);
+      font-size: 16.67px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .product-note {
+      position: absolute;
+      left: 0;
+      top: 289px;
+      width: 314px;
+      margin: 0;
+      color: var(--text);
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 500;
+    }
+
+    .price-row {
+      position: absolute;
+      left: 0;
+      top: 349.33px;
+      width: 262px;
+      height: 35px;
+    }
+
+    .price-current {
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--orange);
+      font-size: 16.67px;
+      line-height: 1.2;
+      font-weight: 600;
+    }
+
+    .price-old {
+      position: absolute;
+      left: 137.33px;
+      top: 2px;
+      color: #aeaeae;
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 500;
+      text-decoration: line-through;
+    }
+
+    .paid {
+      position: absolute;
+      left: 0;
+      top: 19px;
+      color: var(--text);
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 500;
+    }
+
+    .pay-button {
+      position: absolute;
+      left: 0;
+      top: 381.66px;
+      width: 314px;
+      height: 47.67px;
+      border: 0;
+      border-radius: 16.67px;
+      background: var(--orange);
+      color: #fff;
+      font: 700 16.67px/1.2 Montserrat, sans-serif;
+      cursor: default;
+    }
+
+    .agreement {
+      position: absolute;
+      left: 42.5px;
+      top: 438.66px;
+      margin: 0;
+      color: var(--text);
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 500;
+    }
+
+    .agreement a {
+      color: var(--orange);
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    .status-card {
+      position: absolute;
+      left: 23px;
+      top: 551.67px;
+      width: 314px;
+      height: 583px;
+      border-radius: 16.67px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .status-head {
+      position: absolute;
+      left: 75.33px;
+      top: 15.33px;
+      width: 163.33px;
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      color: var(--text);
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 600;
+    }
+
+    .status-head strong {
+      color: var(--orange);
+      font-weight: 700;
+    }
+
+    .line {
+      position: absolute;
+      left: 35.83px;
+      width: 2.67px;
+      border-radius: 6.67px;
+      background: var(--orange-soft);
+    }
+
+    .line--done {
+      background: var(--orange);
+    }
+
+    .line-1 { top: 86.5px; height: 11px; }
+    .line-2 { top: 146.67px; height: 18px; }
+    .line-3 { top: 218.33px; height: 34px; }
+    .line-4 { top: 289.67px; height: 18px; }
+    .line-5 { top: 361.33px; height: 34px; }
+    .line-6 { top: 430.83px; height: 11px; }
+    .line-7 { top: 487.5px; height: 11px; }
+
+    .step {
+      position: absolute;
+      left: 24.83px;
+      width: 236px;
+      min-height: 34px;
+    }
+
+    .step__dot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 32.97px;
+      height: 32.97px;
+      border-radius: 50%;
+      border: 2.67px solid var(--orange-soft);
+      background: transparent;
+    }
+
+    .step--done .step__dot {
+      background: var(--orange);
+      border-color: transparent;
+    }
+
+    .step__check {
+      position: absolute;
+      left: 8.49px;
+      top: 9.49px;
+      width: 16px;
+      height: 13px;
+      display: none;
+    }
+
+    .step--done .step__check {
+      display: block;
+    }
+
+    .step__check path {
+      fill: #fff;
+    }
+
+    .step__title {
+      position: absolute;
+      left: 43.5px;
+      top: 7.49px;
+      margin: 0;
+      color: var(--orange-soft);
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .step__text {
+      position: absolute;
+      left: 43.5px;
+      top: 23.82px;
+      width: 192.67px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13.33px;
+      line-height: 1.2;
+      font-weight: 600;
+    }
+
+    .step--done .step__title {
+      color: var(--orange);
+    }
+
+    .step--done .step__text {
+      color: #3d3d3d;
+    }
+
+    .step-1 { top: 42.33px; height: 33px; }
+    .step-2 { top: 99.33px; height: 33px; }
+    .step-3 { top: 163.33px; height: 55px; }
+    .step-4 { top: 243px; height: 33px; }
+    .step-5 { top: 306.33px; height: 56px; }
+    .step-6 { top: 386px; height: 56px; }
+    .step-7 { top: 444px; height: 33px; }
+    .step-8 { top: 500.67px; height: 42px; }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <header class="hero">
+      <div class="brand">
+        <div class="brand__main">
+          <span>cult</span>
+          <span>meb</span>
+        </div>
+        <div class="brand__lab">lab</div>
+      </div>
+    </header>
+
+    <section class="product-card">
+      <div class="product-image">
+        <div class="placeholder">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</div>
+      </div>
+
+      <div class="order-number">
+        <span>Номер заказа: <strong>#4</strong></span>
+        <span class="copy" aria-hidden="true"></span>
+      </div>
+
+      <h1 class="product-title">Кровать для мамы 160х200</h1>
+      <p class="product-note">Примечание: Тут всякая инфа типо конфигурация или иные изменения</p>
+
+      <div class="price-row">
+        <div class="price-current">Цена: 48.400 ₽</div>
+        <div class="price-old">58.900 ₽</div>
+        <div class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</div>
+      </div>
+
+      <button class="pay-button" type="button">Оплатить</button>
+      <p class="agreement">Оплата подтверждает согласие с <a href="#">офертой.</a></p>
+    </section>
+
+    <section class="status-card">
+      <div class="status-head">
+        <span>Статус:</span>
+        <strong>В очереди (3/8)</strong>
+      </div>
+
+      <div class="line line--done line-1"></div>
+      <div class="line line--done line-2"></div>
+      <div class="line line--done line-3"></div>
+      <div class="line line-4"></div>
+      <div class="line line-5"></div>
+      <div class="line line-6"></div>
+      <div class="line line-7"></div>
+
+      <article class="step step-1 step--done">
+        <div class="step__dot"></div>
+        <svg class="step__check" viewBox="0 0 16 13" aria-hidden="true">
+          <path d="M15.53.44a1.59 1.59 0 0 1 .06 2.3l-8.52 9.75a2.2 2.2 0 0 1-1.67.51 2.21 2.21 0 0 1-1.64-.48L.25 7.63A1.6 1.6 0 0 1 .3 5.38a1.45 1.45 0 0 1 2.09-.04l3.42 3.69L13.27.49A1.46 1.46 0 0 1 15.53.44Z"/>
+        </svg>
+        <h3 class="step__title">Заказ создан.</h3>
+      </article>
+
+      <article class="step step-2 step--done">
+        <div class="step__dot"></div>
+        <svg class="step__check" viewBox="0 0 16 13" aria-hidden="true">
+          <path d="M15.53.44a1.59 1.59 0 0 1 .06 2.3l-8.52 9.75a2.2 2.2 0 0 1-1.67.51 2.21 2.21 0 0 1-1.64-.48L.25 7.63A1.6 1.6 0 0 1 .3 5.38a1.45 1.45 0 0 1 2.09-.04l3.42 3.69L13.27.49A1.46 1.46 0 0 1 15.53.44Z"/>
+        </svg>
+        <h3 class="step__title">Ожидает подтверждения.</h3>
+        <p class="step__text">Проверьте детали, оферту и сумму к оплате.</p>
+      </article>
+
+      <article class="step step-3 step--done">
+        <div class="step__dot"></div>
+        <svg class="step__check" viewBox="0 0 16 13" aria-hidden="true">
+          <path d="M15.53.44a1.59 1.59 0 0 1 .06 2.3l-8.52 9.75a2.2 2.2 0 0 1-1.67.51 2.21 2.21 0 0 1-1.64-.48L.25 7.63A1.6 1.6 0 0 1 .3 5.38a1.45 1.45 0 0 1 2.09-.04l3.42 3.69L13.27.49A1.46 1.46 0 0 1 15.53.44Z"/>
+        </svg>
+        <h3 class="step__title">В очереди.</h3>
+        <p class="step__text">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
+      </article>
+
+      <article class="step step-4">
+        <div class="step__dot"></div>
+        <h3 class="step__title">В работе.</h3>
+        <p class="step__text">Мы работаем над вашим заказом.</p>
+      </article>
+
+      <article class="step step-5">
+        <div class="step__dot"></div>
+        <h3 class="step__title">На согласовании.</h3>
+        <p class="step__text">Проверьте результат и подтвердите, что всё устраивает.</p>
+      </article>
+
+      <article class="step step-6">
+        <div class="step__dot"></div>
+        <h3 class="step__title">Готов к выдаче / отправке.</h3>
+        <p class="step__text">Заказ упакован и ожидает.</p>
+      </article>
+
+      <article class="step step-7">
+        <div class="step__dot"></div>
+        <h3 class="step__title">В пути.</h3>
+        <p class="step__text">Заказ в пути.</p>
+      </article>
+
+      <article class="step step-8">
+        <div class="step__dot"></div>
+        <h3 class="step__title">Завершённый заказ.</h3>
+        <p class="step__text">Заказ завершён. Спасибо за покупку!</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
