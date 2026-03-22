@@ -31,6 +31,28 @@
   });
 }
 
+function applyClientClasses() {
+  const root = document.documentElement;
+  if (!root) {
+    return;
+  }
+
+  const ua = (navigator.userAgent || "").toLowerCase();
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  const platform = tg && typeof tg.platform === "string" ? tg.platform.toLowerCase() : "";
+  const isDesktopPlatform =
+    platform === "tdesktop" ||
+    platform === "macos" ||
+    platform === "web" ||
+    platform === "weba" ||
+    platform === "webk";
+  const isAyuGram = ua.includes("ayugram");
+
+  if (isDesktopPlatform || isAyuGram) {
+    root.classList.add("client-desktop");
+  }
+}
+
 function initTelegramBridge() {
   const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   if (!tg) {
@@ -43,6 +65,7 @@ function initTelegramBridge() {
     if (typeof tg.expand === "function") {
       tg.expand();
     }
+    applyClientClasses();
     return true;
   } catch (error) {
     console.error("Telegram bridge init failed", error);
@@ -84,6 +107,8 @@ function initVkBridge() {
 }
 
 function setupBridges() {
+  applyClientClasses();
+
   if (!initTelegramBridge()) {
     loadScript("https://telegram.org/js/telegram-web-app.js", 6000)
       .then(() => {
