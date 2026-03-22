@@ -257,12 +257,13 @@
       border-radius: 16.6667px;
       background: var(--surface);
       z-index: 1;
+      overflow: hidden;
     }
 
     .status-heading {
       position: absolute;
-      left: 98.3334px;
-      top: 566.9998px;
+      left: 75.3334px;
+      top: 15.3334px;
       display: flex;
       align-items: center;
       gap: 2.3333px;
@@ -287,95 +288,34 @@
       font-weight: 700;
     }
 
-    .line {
+    .status-graphic {
       position: absolute;
-      left: 65.6667px;
-      width: 2.6667px;
-      border-radius: 20px;
+      inset: 0;
       z-index: 2;
+      pointer-events: none;
     }
 
-    .line.done {
-      background: var(--accent);
-    }
-
-    .line.pending {
-      background: var(--accent-soft);
-    }
-
-    .dot {
+    .status-copy {
       position: absolute;
-      left: 47.6667px;
-      width: 32.9712px;
-      height: 32.9712px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 2px solid var(--accent-soft);
-      z-index: 3;
-    }
-
-    .dot.done,
-    .dot.current {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .dot.done::after {
-      content: "";
-      position: absolute;
-      left: 8.3px;
-      top: 9.6px;
-      width: 16px;
-      height: 13px;
-      background: center / contain no-repeat;
-    }
-
-    .dot.done.icon-1::after {
-      background-image: url("https://www.figma.com/api/mcp/asset/58c9a626-bda2-4bfc-917a-655f7d4093d0");
-      background-size: 52px 30.4655px;
-      background-position: -24px -10px;
-    }
-
-    .dot.done.icon-2::after {
-      background-image: url("https://www.figma.com/api/mcp/asset/b483098b-b2e7-4edd-a587-5e248d448ff7");
-      background-size: 52px 30.4655px;
-      background-position: -24px -10px;
-    }
-
-    .dot.current::after {
-      content: "";
-      position: absolute;
-      left: 8px;
-      top: 8px;
-      width: 16px;
-      height: 13px;
-      background: center / contain no-repeat url("https://www.figma.com/api/mcp/asset/07664377-2e96-4b75-b308-06c57cbf181e");
-      background-size: 52px 30.4655px;
-      background-position: -24px -10px;
-      filter: brightness(0) invert(1);
+      left: 68.3333px;
+      width: 192.6667px;
+      z-index: 4;
     }
 
     .step-title {
-      position: absolute;
-      left: 91.3333px;
       margin: 0;
       font-size: 13.3333px;
       line-height: 16px;
       font-weight: 700;
       white-space: nowrap;
-      z-index: 4;
     }
 
     .step-text {
-      position: absolute;
-      left: 91.3333px;
-      width: 192.6667px;
-      margin: 0;
+      margin: 1px 0 0;
       font-size: 13.3333px;
       line-height: 16px;
       font-weight: 600;
       white-space: normal;
-      z-index: 4;
     }
 
     .done-text {
@@ -437,47 +377,74 @@
       <p class="offer">Оплата подтверждает согласие с <strong>офертой.</strong></p>
 
       <div class="status-card"></div>
-      <p class="status-heading"><span>Статус:</span><strong>В очереди (3/8)</strong></p>
+      <div class="status-card">
+        <p class="status-heading"><span>Статус:</span><strong>В очереди (3/8)</strong></p>
 
-      <div class="line done" style="top:633.9997px;height:11px;"></div>
-      <div class="line done" style="top:690.6665px;height:18px;"></div>
-      <div class="line pending" style="top:754.3329px;height:34px;"></div>
-      <div class="line pending" style="top:833.6663px;height:18px;"></div>
-      <div class="line pending" style="top:897.3332px;height:34px;"></div>
-      <div class="line pending" style="top:978.3328px;height:11px;"></div>
-      <div class="line pending" style="top:1034.9996px;height:11px;"></div>
+        <svg class="status-graphic" viewBox="0 0 314 583" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="0" y="0" width="314" height="583" rx="16.6667" fill="#EFEFEF"/>
 
-      <div class="dot done icon-1" style="top:594px;"></div>
-      <div class="dot done icon-2" style="top:651px;"></div>
-      <div class="dot current" style="top:715px;"></div>
-      <div class="dot" style="top:794.6667px;"></div>
-      <div class="dot" style="top:858px;"></div>
-      <div class="dot" style="top:937.6663px;"></div>
-      <div class="dot" style="top:995.6665px;"></div>
-      <div class="dot" style="top:1052.3325px;"></div>
+          <rect x="42.6667" y="82.3333" width="2.6667" height="11" rx="10" fill="#FF6C36"/>
+          <rect x="42.6667" y="139" width="2.6667" height="18" rx="10" fill="#FF6C36"/>
+          <rect x="42.6667" y="202.6665" width="2.6667" height="34" rx="10" fill="#FFAE91"/>
+          <rect x="42.6667" y="281.9999" width="2.6667" height="18" rx="10" fill="#FFAE91"/>
+          <rect x="42.6667" y="345.6668" width="2.6667" height="34" rx="10" fill="#FFAE91"/>
+          <rect x="42.6667" y="426.6664" width="2.6667" height="11" rx="10" fill="#FFAE91"/>
+          <rect x="42.6667" y="483.3332" width="2.6667" height="11" rx="10" fill="#FFAE91"/>
 
-      <p class="step-title done-text" style="top:602.9998px;">Заказ создан.</p>
+          <circle cx="41.1523" cy="58.8192" r="16.4856" fill="#FF6C36"/>
+          <circle cx="41.1523" cy="115.8192" r="16.4856" fill="#FF6C36"/>
+          <circle cx="41.1523" cy="179.8192" r="16.4856" fill="#FF6C36"/>
 
-      <p class="step-title done-text" style="top:659.6667px;">Ожидает подтверждения.</p>
-      <p class="step-text done-body" style="top:675.9997px;">Проверьте детали, оферту и сумму к оплате.</p>
+          <circle cx="41.1523" cy="259.4863" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
+          <circle cx="41.1523" cy="322.8192" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
+          <circle cx="41.1523" cy="402.4859" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
+          <circle cx="41.1523" cy="460.4861" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
+          <circle cx="41.1523" cy="517.1527" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
 
-      <p class="step-title current-text" style="top:723.0000px;">В очереди.</p>
-      <p class="step-text current-body" style="top:739.3331px;">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
+          <path d="M34 58.5L39.5 64L48 53.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M34 115.5L39.5 121L48 110.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M34 179.5L39.5 185L48 174.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
 
-      <p class="step-title pending-title" style="top:802.6664px;">В работе.</p>
-      <p class="step-text pending-body" style="top:818.9995px;">Мы работаем над вашим заказом.</p>
+        <div class="status-copy" style="top:51.3334px;">
+          <p class="step-title done-text">Заказ создан.</p>
+        </div>
 
-      <p class="step-title pending-title" style="top:859.6663px;">На согласовании.</p>
-      <p class="step-text pending-body" style="top:882.3333px;">Проверьте результат и подтвердите, что всё устраивает.</p>
+        <div class="status-copy" style="top:108.0003px;">
+          <p class="step-title done-text">Ожидает подтверждения.</p>
+          <p class="step-text done-body">Проверьте детали, оферту и сумму к оплате.</p>
+        </div>
 
-      <p class="step-title pending-title" style="top:945.6667px;">Готов к выдаче / отправке.</p>
-      <p class="step-text pending-body" style="top:961.9997px;">Заказ упакован и ожидает.</p>
+        <div class="status-copy" style="top:171.3336px;">
+          <p class="step-title current-text">В очереди.</p>
+          <p class="step-text current-body">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
+        </div>
 
-      <p class="step-title pending-title" style="top:1003.6667px;">В пути.</p>
-      <p class="step-text pending-body" style="top:1019.9998px;">Заказ в пути.</p>
+        <div class="status-copy" style="top:250.9999px;">
+          <p class="step-title pending-title">В работе.</p>
+          <p class="step-text pending-body">Мы работаем над вашим заказом.</p>
+        </div>
 
-      <p class="step-title pending-title" style="top:1060.3330px;">Завершённый заказ.</p>
-      <p class="step-text pending-body" style="top:1076.6666px;">Заказ завершён. Спасибо за покупку!</p>
+        <div class="status-copy" style="top:307.9999px;">
+          <p class="step-title pending-title">На согласовании.</p>
+          <p class="step-text pending-body">Проверьте результат и подтвердите, что всё устраивает.</p>
+        </div>
+
+        <div class="status-copy" style="top:394.0003px;">
+          <p class="step-title pending-title">Готов к выдаче / отправке.</p>
+          <p class="step-text pending-body">Заказ упакован и ожидает.</p>
+        </div>
+
+        <div class="status-copy" style="top:452.0003px;">
+          <p class="step-title pending-title">В пути.</p>
+          <p class="step-text pending-body">Заказ в пути.</p>
+        </div>
+
+        <div class="status-copy" style="top:508.6666px;">
+          <p class="step-title pending-title">Завершённый заказ.</p>
+          <p class="step-text pending-body">Заказ завершён. Спасибо за покупку!</p>
+        </div>
+      </div>
     </section>
   </main>
 
