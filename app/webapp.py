@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from html import escape as html_escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,6 +16,10 @@ OrderProvider = Callable[[str], dict[str, object] | None]
 
 def _mini_app_template_path() -> Path:
     return Path(__file__).resolve().parent.parent / "miniapp" / "index.html"
+
+
+def _mini_app_root_path() -> Path:
+    return Path(__file__).resolve().parent.parent / "miniapp"
 
 
 def build_mini_app_html(title: str) -> str:
@@ -51,6 +56,7 @@ class MiniAppServer:
         title = self.title
         logger = self.logger
         order_provider = self.order_provider
+        mini_app_root = _mini_app_root_path().resolve()
 
         class Handler(BaseHTTPRequestHandler):
             def _write_response(
@@ -106,6 +112,21 @@ class MiniAppServer:
                     self._write_json(HTTPStatus.OK, {"ok": True}, cors=path.startswith("/api/"))
                     return
 
+                if path.startswith("/mockups/"):
+                    asset_path = self._resolve_static_asset(path, mini_app_root)
+                    if asset_path is None or not asset_path.is_file():
+                        self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+                        return
+
+                    content = asset_path.read_bytes()
+                    content_type, _ = mimetypes.guess_type(asset_path.name)
+                    self._write_response(
+                        HTTPStatus.OK,
+                        content,
+                        content_type=content_type or "application/octet-stream",
+                    )
+                    return
+
                 if path.startswith("/api/order"):
                     token = self._extract_order_token(path, parsed.query)
                     if not token:
@@ -152,6 +173,16 @@ class MiniAppServer:
                         if value:
                             return value
                 return ""
+
+            @staticmethod
+            def _resolve_static_asset(request_path: str, root: Path) -> Path | None:
+                relative_path = request_path.lstrip("/")
+                candidate = (root / relative_path).resolve()
+                try:
+                    candidate.relative_to(root)
+                except ValueError:
+                    return None
+                return candidate
 
             def log_message(self, format: str, *args: object) -> None:
                 if logger is not None:
