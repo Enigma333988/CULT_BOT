@@ -2194,4 +2194,20 @@ body.no-scroll {
   }
 }
 
+/* Apply shrinking only on real narrow touch phones, not desktop wrappers (AyuGram, etc.) */
+@media (max-width: 359px) and (hover: none) and (pointer: coarse) {
+  .frame-1-47748e3051f0 {
+    transform-origin: top center;
+    transform: scale(calc((100vw - 8px) / 360));
+    margin: 4px auto 0;
+  }
+}
+
+@media (max-width: 359px) and ((hover: hover) or (pointer: fine)) {
+  .frame-1-47748e3051f0 {
+    transform: none;
+    margin: 0 auto;
+  }
+}
+
 
