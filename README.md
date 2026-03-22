@@ -118,14 +118,15 @@ python bot.py
 
 Чтобы Telegram открывал эту страницу прямо внутри приложения, нужно указать `MINI_APP_PUBLIC_URL` с публичным `https://` адресом. После этого бот зарегистрирует кнопку меню и команду `/miniapp` для запуска Mini App.
 
-Теперь Mini App умеет:
+Сейчас стартовая страница работает как `mockup preview`: она пытается показать изображение из `miniapp/mockups/`.
+
+В `miniapp/mockups/` можно складывать макеты экранов размером `1080x1920`. Для автопоказа используй `current.png` или `current.jpg`. Для конкретного файла можно открыть Mini App с параметром `?mockup=name.png`.
+
+Базовая обвязка уже готова:
 
 * определять среду `browser / telegram / max / vk`;
-* читать токен заказа из `?orderToken=...`, `?token=...`, `#orderToken=...` и `startapp=order_<token>`;
-* запрашивать актуальный статус заказа через `GET /api/order?token=<token>`;
-* показывать карточку заказа, прогресс по этапам, оплату и историю изменений.
-
-Для VK Mini App можно использовать тот же URL, если он опубликован по `https://`. Если статический файл [miniapp/index.html](/C:/Users/shiro/Desktop/CULT_BOT/miniapp/index.html) лежит отдельно от Python-сервера, передайте адрес backend через `?apiBase=https://example.com`.
+* инициализировать bridge для Telegram, MAX и VK;
+* отдавать HTML и JSON API по заказу с Python-сервера для следующего этапа разработки.
 
 > Сейчас интеграция с MAX работает через **long polling**. Для production документация MAX рекомендует использовать **Webhook**.
 
