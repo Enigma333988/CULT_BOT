@@ -3126,6 +3126,7 @@ def main() -> None:
         MINI_APP_HOST,
         MINI_APP_PORT,
         MINI_APP_TITLE,
+        asset_version=MINI_APP_CACHE_BUSTER or "",
         order_provider=get_public_order_payload,
         logger=console_print,
     )

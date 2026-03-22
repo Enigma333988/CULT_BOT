@@ -22,9 +22,13 @@ def _mini_app_root_path() -> Path:
     return Path(__file__).resolve().parent.parent / "miniapp"
 
 
-def build_mini_app_html(title: str) -> str:
+def build_mini_app_html(title: str, asset_version: str = "") -> str:
     template = _mini_app_template_path().read_text(encoding="utf-8")
-    return template.replace("__CULT_MINI_APP_TITLE__", html_escape(title, quote=True))
+    version_suffix = f"?v={asset_version}" if asset_version else ""
+    html = template.replace("__CULT_MINI_APP_TITLE__", html_escape(title, quote=True))
+    html = html.replace('href="./styles.css"', f'href="./styles.css{version_suffix}"')
+    html = html.replace('src="./app.js"', f'src="./app.js{version_suffix}"')
+    return html
 
 
 class MiniAppServer:
@@ -34,12 +38,14 @@ class MiniAppServer:
         port: int,
         title: str,
         *,
+        asset_version: str = "",
         order_provider: OrderProvider | None = None,
         logger: Callable[[str], None] | None = None,
     ) -> None:
         self.host = host
         self.port = port
         self.title = title
+        self.asset_version = asset_version
         self.order_provider = order_provider
         self.logger = logger
         self._httpd: ThreadingHTTPServer | None = None
@@ -54,6 +60,7 @@ class MiniAppServer:
             return self.local_url
 
         title = self.title
+        asset_version = self.asset_version
         logger = self.logger
         order_provider = self.order_provider
         mini_app_root = _mini_app_root_path().resolve()
@@ -100,7 +107,7 @@ class MiniAppServer:
                 path = parsed.path or "/"
 
                 if path in {"/", "/index.html"}:
-                    content = build_mini_app_html(title).encode("utf-8")
+                    content = build_mini_app_html(title, asset_version).encode("utf-8")
                     self._write_response(
                         HTTPStatus.OK,
                         content,
