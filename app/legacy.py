@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from html import escape as html_escape
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from zoneinfo import ZoneInfo
 
 import requests
@@ -74,6 +74,7 @@ MINI_APP_BUTTON_TEXT = get_env_value("MINI_APP_BUTTON_TEXT", "Открыть п�
 MINI_APP_HOST = get_env_value("MINI_APP_HOST", "127.0.0.1")
 MINI_APP_PORT_RAW = get_env_value("MINI_APP_PORT", "8080")
 MINI_APP_PUBLIC_URL = get_env_value("MINI_APP_PUBLIC_URL")
+MINI_APP_CACHE_BUSTER = get_env_value("MINI_APP_CACHE_BUSTER")
 PAYMENT_OPTIONS = {
     "0": 0,
     "50": 50,
@@ -581,10 +582,23 @@ def get_local_mini_app_url() -> str:
     return f"http://{MINI_APP_HOST}:{MINI_APP_PORT}/"
 
 
-def build_telegram_mini_app_button() -> dict[str, Any] | None:
+def get_mini_app_public_url() -> str | None:
     if not MINI_APP_PUBLIC_URL:
         return None
-    return {"text": MINI_APP_BUTTON_TEXT, "web_app": {"url": MINI_APP_PUBLIC_URL}}
+    if not MINI_APP_CACHE_BUSTER:
+        return MINI_APP_PUBLIC_URL
+
+    parsed = urlparse(MINI_APP_PUBLIC_URL)
+    query_items = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k != "v"]
+    query_items.append(("v", MINI_APP_CACHE_BUSTER))
+    return urlunparse(parsed._replace(query=urlencode(query_items)))
+
+
+def build_telegram_mini_app_button() -> dict[str, Any] | None:
+    public_url = get_mini_app_public_url()
+    if not public_url:
+        return None
+    return {"text": MINI_APP_BUTTON_TEXT, "web_app": {"url": public_url}}
 
 
 def build_telegram_mini_app_inline_keyboard() -> dict[str, Any] | None:
@@ -595,7 +609,8 @@ def build_telegram_mini_app_inline_keyboard() -> dict[str, Any] | None:
 
 
 def register_telegram_mini_app_menu_button() -> None:
-    if not platform_enabled("telegram") or not MINI_APP_PUBLIC_URL:
+    public_url = get_mini_app_public_url()
+    if not platform_enabled("telegram") or not public_url:
         return
     telegram_api_request(
         "setChatMenuButton",
@@ -604,7 +619,7 @@ def register_telegram_mini_app_menu_button() -> None:
                 {
                     "type": "web_app",
                     "text": MINI_APP_BUTTON_TEXT,
-                    "web_app": {"url": MINI_APP_PUBLIC_URL},
+                    "web_app": {"url": public_url},
                 }
             )
         },
@@ -3122,7 +3137,7 @@ def main() -> None:
         sync_archives()
     console_print(f"Mini App local URL: {local_mini_app_url}")
     if MINI_APP_PUBLIC_URL:
-        console_print(f"Mini App public URL: {MINI_APP_PUBLIC_URL}")
+        console_print(f"Mini App public URL: {get_mini_app_public_url()}")
     else:
         console_print("MINI_APP_PUBLIC_URL is not set. Mini App is available locally, but Telegram will not open it inside the app yet.")
     console_print("🤖 CULT_BOT запущен")
