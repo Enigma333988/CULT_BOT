@@ -1138,6 +1138,81 @@ def build_status_text(order: dict[str, Any]) -> str:
     return f"{get_status_label(order['status'])} ({current_step}/{total_steps})"
 
 
+def serialize_order_for_mini_app(order: dict[str, Any]) -> dict[str, Any]:
+    current_step, total_steps = get_status_progress(order)
+    status_keys = get_status_keys(order["has_delivery"]) + ["completed"]
+    timeline: list[dict[str, Any]] = []
+    for index, status_key in enumerate(status_keys, start=1):
+        timeline.append(
+            {
+                "key": status_key,
+                "label": get_status_label(status_key),
+                "index": index,
+                "done": index < current_step,
+                "active": index == current_step,
+            }
+        )
+
+    bindings = get_order_bindings(order)
+    history_items = [
+        {
+            "timestamp": item.get("timestamp"),
+            "timestamp_label": format_local_time(item.get("timestamp")),
+            "text": item.get("text", ""),
+        }
+        for item in order.get("history", [])
+        if isinstance(item, dict)
+    ]
+
+    return {
+        "id": order["id"],
+        "token": order["token"],
+        "title": order["title"],
+        "status": order["status"],
+        "status_label": get_status_label(order["status"]),
+        "status_text": build_status_text(order),
+        "status_step": current_step,
+        "status_total_steps": total_steps,
+        "progress_percent": round(current_step * 100 / max(total_steps, 1)),
+        "status_timeline": timeline,
+        "notes": order.get("notes") or "",
+        "has_delivery": bool(order.get("has_delivery")),
+        "delivery_mode_label": "Доставка" if order.get("has_delivery") else "Самовывоз",
+        "delivery_planned_for": order.get("delivery_planned_for"),
+        "delivery_planned_for_label": order.get("delivery_planned_for") or "",
+        "total_price": order["total_price"],
+        "total_price_label": format_price(order["total_price"]),
+        "paid_amount": order.get("paid_amount", 0),
+        "paid_amount_label": format_price(order.get("paid_amount", 0)),
+        "paid_percent": calculate_payment_percent(order),
+        "paid_text": get_paid_text(order),
+        "created_at": order.get("created_at"),
+        "created_at_label": format_local_time(order.get("created_at")),
+        "updated_at": order.get("updated_at"),
+        "updated_at_label": format_local_time(order.get("updated_at")),
+        "completed_at": order.get("completed_at"),
+        "completed_at_label": format_local_time(order.get("completed_at")),
+        "created_via": order.get("created_via", "telegram"),
+        "created_via_label": get_platform_label(order.get("created_via", "telegram")),
+        "customer_platforms": [binding["platform"] for binding in bindings],
+        "customer_sources_text": get_order_sources_text(order),
+        "history": history_items,
+        "support_links": {
+            "contact": CONTACT_URL,
+            "vk": VK_URL,
+            "telegram": TG_URL,
+        },
+    }
+
+
+def get_public_order_payload(token: str) -> dict[str, Any] | None:
+    with state_lock:
+        order = find_order_by_token(token)
+        if order is None:
+            return None
+        return serialize_order_for_mini_app(order)
+
+
 
 def archive_file_path(order_id: int) -> Path:
     return ARCHIVE_DIR / f"order_{order_id:05d}.txt"
@@ -3032,7 +3107,13 @@ def run_max_polling(stop_event: threading.Event) -> None:
 
 
 def main() -> None:
-    mini_app_server = MiniAppServer(MINI_APP_HOST, MINI_APP_PORT, MINI_APP_TITLE, logger=console_print)
+    mini_app_server = MiniAppServer(
+        MINI_APP_HOST,
+        MINI_APP_PORT,
+        MINI_APP_TITLE,
+        order_provider=get_public_order_payload,
+        logger=console_print,
+    )
     local_mini_app_url = mini_app_server.start()
     initialize_telegram_profile()
     initialize_max_profile()

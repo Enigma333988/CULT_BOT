@@ -1,54 +1,25 @@
 from __future__ import annotations
 
+import json
+from html import escape as html_escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from threading import Thread
 from typing import Callable
+from urllib.parse import parse_qs, unquote, urlparse
+
+
+OrderProvider = Callable[[str], dict[str, object] | None]
+
+
+def _mini_app_template_path() -> Path:
+    return Path(__file__).resolve().parent.parent / "miniapp" / "index.html"
 
 
 def build_mini_app_html(title: str) -> str:
-    return f"""<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title}</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://st.max.ru/js/max-web-app.js"></script>
-  <style>
-    html, body {{
-      margin: 0;
-      width: 100%;
-      min-height: 100%;
-      background: #ffffff;
-    }}
-  </style>
-</head>
-<body>
-  <script>
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-    const maxApp = window.WebApp || null;
-
-    if (tg) {{
-      try {{
-        tg.ready();
-        tg.expand();
-      }} catch (error) {{
-        console.error("Telegram bridge init failed", error);
-      }}
-    }}
-
-    if (maxApp && typeof maxApp.ready === "function") {{
-      try {{
-        maxApp.ready();
-      }} catch (error) {{
-        console.error("MAX bridge init failed", error);
-      }}
-    }}
-  </script>
-</body>
-</html>
-"""
+    template = _mini_app_template_path().read_text(encoding="utf-8")
+    return template.replace("__CULT_MINI_APP_TITLE__", html_escape(title, quote=True))
 
 
 class MiniAppServer:
@@ -58,11 +29,13 @@ class MiniAppServer:
         port: int,
         title: str,
         *,
+        order_provider: OrderProvider | None = None,
         logger: Callable[[str], None] | None = None,
     ) -> None:
         self.host = host
         self.port = port
         self.title = title
+        self.order_provider = order_provider
         self.logger = logger
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: Thread | None = None
@@ -77,28 +50,108 @@ class MiniAppServer:
 
         title = self.title
         logger = self.logger
+        order_provider = self.order_provider
 
         class Handler(BaseHTTPRequestHandler):
+            def _write_response(
+                self,
+                status: HTTPStatus,
+                body: bytes,
+                *,
+                content_type: str,
+                cors: bool = False,
+            ) -> None:
+                self.send_response(status)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(body)))
+                if cors:
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                    self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.end_headers()
+                self.wfile.write(body)
+
+            def _write_json(
+                self,
+                status: HTTPStatus,
+                payload: dict[str, object],
+                *,
+                cors: bool = False,
+            ) -> None:
+                body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+                self._write_response(status, body, content_type="application/json; charset=utf-8", cors=cors)
+
+            def do_OPTIONS(self) -> None:  # noqa: N802
+                self.send_response(HTTPStatus.NO_CONTENT)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
             def do_GET(self) -> None:  # noqa: N802
-                if self.path in {"/", "/index.html"}:
+                parsed = urlparse(self.path)
+                path = parsed.path or "/"
+
+                if path in {"/", "/index.html"}:
                     content = build_mini_app_html(title).encode("utf-8")
-                    self.send_response(HTTPStatus.OK)
-                    self.send_header("Content-Type", "text/html; charset=utf-8")
-                    self.send_header("Content-Length", str(len(content)))
-                    self.end_headers()
-                    self.wfile.write(content)
+                    self._write_response(
+                        HTTPStatus.OK,
+                        content,
+                        content_type="text/html; charset=utf-8",
+                    )
                     return
 
-                if self.path == "/health":
-                    content = b'{"ok":true}'
-                    self.send_response(HTTPStatus.OK)
-                    self.send_header("Content-Type", "application/json; charset=utf-8")
-                    self.send_header("Content-Length", str(len(content)))
-                    self.end_headers()
-                    self.wfile.write(content)
+                if path in {"/health", "/api/health"}:
+                    self._write_json(HTTPStatus.OK, {"ok": True}, cors=path.startswith("/api/"))
+                    return
+
+                if path.startswith("/api/order"):
+                    token = self._extract_order_token(path, parsed.query)
+                    if not token:
+                        self._write_json(
+                            HTTPStatus.BAD_REQUEST,
+                            {"ok": False, "error": "order token is required"},
+                            cors=True,
+                        )
+                        return
+
+                    if order_provider is None:
+                        self._write_json(
+                            HTTPStatus.NOT_IMPLEMENTED,
+                            {"ok": False, "error": "order provider is not configured"},
+                            cors=True,
+                        )
+                        return
+
+                    payload = order_provider(token)
+                    if payload is None:
+                        self._write_json(
+                            HTTPStatus.NOT_FOUND,
+                            {"ok": False, "error": "order not found"},
+                            cors=True,
+                        )
+                        return
+
+                    self._write_json(HTTPStatus.OK, {"ok": True, "order": payload}, cors=True)
                     return
 
                 self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+
+            @staticmethod
+            def _extract_order_token(path: str, query: str) -> str:
+                suffix = path.removeprefix("/api/order").strip("/")
+                if suffix:
+                    return unquote(suffix)
+
+                query_params = parse_qs(query, keep_blank_values=False)
+                for key in ("token", "orderToken", "order_token"):
+                    values = query_params.get(key)
+                    if values:
+                        value = values[0].strip()
+                        if value:
+                            return value
+                return ""
 
             def log_message(self, format: str, *args: object) -> None:
                 if logger is not None:
