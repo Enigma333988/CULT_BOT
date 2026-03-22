@@ -112,7 +112,11 @@ class MiniAppServer:
                     self._write_json(HTTPStatus.OK, {"ok": True}, cors=path.startswith("/api/"))
                     return
 
-                if path in {"/styles.css", "/app.js", "/header_logo.svg"} or path.startswith("/mockups/"):
+                if (
+                    path in {"/styles.css", "/app.js", "/header_logo.svg"}
+                    or path.startswith("/mockups/")
+                    or path.startswith("/fonts/")
+                ):
                     asset_path = self._resolve_static_asset(path, mini_app_root)
                     if asset_path is None or not asset_path.is_file():
                         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
