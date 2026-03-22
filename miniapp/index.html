@@ -4,71 +4,449 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>__CULT_MINI_APP_TITLE__</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://st.max.ru/js/max-web-app.js"></script>
   <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
   <style>
+    :root {
+      --page-bg: #ffffff;
+      --surface: #efefef;
+      --text: #454545;
+      --text-muted: #747474;
+      --text-soft: #aeaeae;
+      --accent: #ff6c36;
+      --accent-soft: #ffae91;
+      --card-radius: 22px;
+      --button-radius: 20px;
+      --shadow: 0 20px 48px rgba(0, 0, 0, 0.08);
+      --screen-width: 360px;
+      --frame-width: 320px;
+      --line-width: 3px;
+      --line-left: 34px;
+      --line-top: 57px;
+      --line-bottom: 58px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     html, body {
       margin: 0;
-      width: 100%;
       min-height: 100%;
-      background: #ffffff;
-      font-family: Arial, sans-serif;
+      background: var(--page-bg);
+      color: var(--text);
+      font-family: "Montserrat", sans-serif;
     }
 
     body {
-      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      background:
+        linear-gradient(180deg, #f7f7f7 0%, #ffffff 160px);
     }
 
-    .stage {
+    .app {
+      width: min(100%, var(--screen-width));
+      min-height: 100vh;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      position: relative;
+      width: 100%;
+      height: 120px;
+      overflow: hidden;
+      background: center / cover no-repeat url("https://www.figma.com/api/mcp/asset/6ad5e238-90e1-4f07-94da-22f6d2d566d2");
+    }
+
+    .content {
+      padding: 20px 20px 34px;
+    }
+
+    .photo-card {
+      margin-top: -30px;
+      padding: 18px 18px 16px;
+      border-radius: 0 0 22px 22px;
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .photo-wrap {
+      overflow: hidden;
+      width: 100%;
+      aspect-ratio: 284 / 203;
+      background: #ddd;
+    }
+
+    .photo-wrap img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-caption {
+      margin: 12px 0 0;
+      font-size: 12px;
+      font-weight: 500;
+      color: #616161;
+      letter-spacing: 0.01em;
+    }
+
+    .order-id {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 100vw;
-      min-height: 100vh;
-      background: #ffffff;
-    }
-
-    .mockup {
-      display: block;
-      max-width: 100vw;
-      max-height: 100vh;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      background: #ffffff;
-    }
-
-    .fallback {
-      max-width: 360px;
-      padding: 24px;
-      color: #6b6b6b;
-      text-align: center;
-      line-height: 1.5;
+      gap: 8px;
+      margin: 14px 0 10px;
       font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
     }
 
-    .hidden {
+    .copy-icon {
+      display: inline-flex;
+      width: 16px;
+      height: 16px;
+      color: var(--accent);
+    }
+
+    .copy-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.18;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .notes {
+      margin: 2px 0 0;
+      font-size: 12px;
+      line-height: 1.22;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .price-block {
+      margin-top: 18px;
+    }
+
+    .price-line {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .price-current {
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .price-old {
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 500;
+      color: var(--text-soft);
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
+    }
+
+    .paid {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .pay-button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 16px 20px;
+      border: 0;
+      border-radius: var(--button-radius);
+      background: var(--accent);
+      color: #ffffff;
+      font: inherit;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .offer {
+      margin: 10px 0 0;
+      font-size: 10px;
+      line-height: 1.3;
+      font-weight: 500;
+      text-align: center;
+      color: #7a7a7a;
+    }
+
+    .offer span {
+      color: var(--accent);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+    }
+
+    .status-card {
+      position: relative;
+      margin-top: 16px;
+      padding: 18px 14px 18px 14px;
+      border-radius: 18px;
+      background: var(--surface);
+    }
+
+    .status-summary {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin: 0 0 16px;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .status-summary strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 14px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: var(--line-left);
+      top: var(--line-top);
+      bottom: var(--line-bottom);
+      width: var(--line-width);
+      background:
+        linear-gradient(
+          180deg,
+          var(--accent) 0 19%,
+          var(--accent-soft) 19% 100%
+        );
+      border-radius: 999px;
+    }
+
+    .timeline-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      align-items: start;
+      z-index: 1;
+    }
+
+    .marker {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid var(--accent-soft);
+    }
+
+    .marker::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 10px;
+      height: 6px;
+      border-left: 2px solid transparent;
+      border-bottom: 2px solid transparent;
+      transform: translate(-50%, -55%) rotate(-45deg);
+      opacity: 0;
+    }
+
+    .timeline-item.done .marker,
+    .timeline-item.current .marker {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .timeline-item.done .marker::after {
+      border-left-color: #ffffff;
+      border-bottom-color: #ffffff;
+      opacity: 1;
+    }
+
+    .timeline-item.current .marker::after {
       display: none;
+    }
+
+    .timeline-item.done .step-title,
+    .timeline-item.current .step-title {
+      color: var(--accent);
+    }
+
+    .timeline-item.pending .step-title {
+      color: var(--accent-soft);
+    }
+
+    .step-title {
+      margin: 2px 0 2px;
+      font-size: 12px;
+      line-height: 1.16;
+      font-weight: 700;
+    }
+
+    .step-text {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.18;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .timeline-item.pending .step-text {
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 359px) {
+      .content {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
     }
   </style>
 </head>
 <body>
-  <main class="stage">
-    <img id="mockup" class="mockup hidden" alt="Mini App mockup preview">
-    <div id="fallback" class="fallback hidden">
-      Положи макет в <code>miniapp/mockups/</code> с именем <code>current.png</code>,
-      <code>current.jpg</code>, <code>current.jpeg</code> или <code>current.webp</code>.
-      Можно также открыть конкретный файл через параметр <code>?mockup=name.png</code>.
-    </div>
+  <main class="app">
+    <header class="hero" aria-hidden="true"></header>
+
+    <section class="content">
+      <div class="photo-card">
+        <div class="photo-wrap">
+          <img src="https://www.figma.com/api/mcp/asset/568374e3-fd52-47e6-a60e-ef5c14fd05f0" alt="Фото товара">
+        </div>
+        <p class="photo-caption">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</p>
+      </div>
+
+      <div class="order-id">
+        <span>Номер заказа: #4</span>
+        <span class="copy-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="10" height="10" rx="1.5"></rect>
+            <path d="M7 15H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"></path>
+          </svg>
+        </span>
+      </div>
+
+      <h1 class="title">Кровать для мамы 160x200</h1>
+      <p class="notes">Примечание: Тут всякая инфа типо конфигурация или иные изменения</p>
+
+      <div class="price-block">
+        <div class="price-line">
+          <span class="price-current">Цена: 48.400 ₽</span>
+          <span class="price-old">58.900 ₽</span>
+        </div>
+        <div class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</div>
+      </div>
+
+      <button class="pay-button" type="button">Оплатить</button>
+      <p class="offer">Оплата подтверждает согласие с <span>офертой.</span></p>
+
+      <section class="status-card">
+        <div class="status-summary">
+          <span>Статус:</span>
+          <strong>В очереди (3/8)</strong>
+        </div>
+
+        <div class="timeline">
+          <article class="timeline-item done">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">Заказ создан.</div>
+            </div>
+          </article>
+
+          <article class="timeline-item done">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">Ожидает подтверждения.</div>
+              <p class="step-text">Проверьте детали, оферту и сумму к оплате.</p>
+            </div>
+          </article>
+
+          <article class="timeline-item current">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">В очереди.</div>
+              <p class="step-text">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
+            </div>
+          </article>
+
+          <article class="timeline-item pending">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">В работе.</div>
+              <p class="step-text">Мы работаем над вашим заказом.</p>
+            </div>
+          </article>
+
+          <article class="timeline-item pending">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">На согласовании.</div>
+              <p class="step-text">Проверьте результат и подтвердите, что всё устраивает.</p>
+            </div>
+          </article>
+
+          <article class="timeline-item pending">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">Готов к выдаче / отправке.</div>
+              <p class="step-text">Заказ упакован и ожидает.</p>
+            </div>
+          </article>
+
+          <article class="timeline-item pending">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">В пути.</div>
+              <p class="step-text">Заказ в пути.</p>
+            </div>
+          </article>
+
+          <article class="timeline-item pending">
+            <div class="marker"></div>
+            <div>
+              <div class="step-title">Завершённый заказ.</div>
+              <p class="step-text">Заказ завершён. Спасибо за покупку!</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </section>
   </main>
 
   <script>
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     const maxApp = window.WebApp || null;
     const vkBridge = window.vkBridge || null;
-    const mockupImage = document.getElementById("mockup");
-    const fallback = document.getElementById("fallback");
 
     if (tg) {
       try {
@@ -90,62 +468,6 @@
     if (vkBridge && typeof vkBridge.send === "function") {
       vkBridge.send("VKWebAppInit").catch((error) => {
         console.error("VK bridge init failed", error);
-      });
-    }
-
-    startMockupPreview();
-
-    async function startMockupPreview() {
-      const candidates = buildMockupCandidates();
-      for (const src of candidates) {
-        const ok = await tryLoadImage(src);
-        if (ok) {
-          mockupImage.src = src;
-          mockupImage.classList.remove("hidden");
-          fallback.classList.add("hidden");
-          return;
-        }
-      }
-
-      fallback.classList.remove("hidden");
-    }
-
-    function buildMockupCandidates() {
-      const params = new URLSearchParams(window.location.search);
-      const explicit = sanitizeMockupName(params.get("mockup"));
-      const candidates = [];
-
-      if (explicit) {
-        candidates.push(`./mockups/${explicit}`);
-      }
-
-      candidates.push("./mockups/current.png");
-      candidates.push("./mockups/current.jpg");
-      candidates.push("./mockups/current.jpeg");
-      candidates.push("./mockups/current.webp");
-      return candidates;
-    }
-
-    function sanitizeMockupName(value) {
-      if (!value) {
-        return "";
-      }
-      const trimmed = value.trim();
-      if (!trimmed) {
-        return "";
-      }
-      if (trimmed.includes("/") || trimmed.includes("\\") || trimmed.includes("..")) {
-        return "";
-      }
-      return trimmed;
-    }
-
-    function tryLoadImage(src) {
-      return new Promise((resolve) => {
-        const image = new Image();
-        image.onload = () => resolve(true);
-        image.onerror = () => resolve(false);
-        image.src = src;
       });
     }
   </script>
