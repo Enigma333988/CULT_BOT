@@ -98,8 +98,10 @@ body {
   position: absolute;
   left: 108.6667px;
   top: 336.3331px;
+  width: 141.4444px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6.3333px;
   height: 16px;
   font-size: 13.3333px;
@@ -219,6 +221,7 @@ body {
   line-height: 20px;
   font-weight: 700;
   cursor: default;
+  text-align: center;
 }
 
 .offer {
@@ -293,14 +296,14 @@ body {
   z-index: 4;
 }
 
-.status-copy-1 { top: 51.3334px; }
-.status-copy-2 { top: 108.0003px; }
-.status-copy-3 { top: 171.3336px; }
-.status-copy-4 { top: 250.9999px; }
-.status-copy-5 { top: 307.9999px; }
-.status-copy-6 { top: 394.0003px; }
-.status-copy-7 { top: 452.0003px; }
-.status-copy-8 { top: 508.6666px; }
+.status-copy-1 { top: 51.3334px; height: 16px; }
+.status-copy-2 { top: 108.0003px; height: 48px; }
+.status-copy-3 { top: 171.3336px; height: 64px; }
+.status-copy-4 { top: 250.9999px; height: 48px; }
+.status-copy-5 { top: 307.9999px; height: 64px; }
+.status-copy-6 { top: 394.0003px; height: 32px; }
+.status-copy-7 { top: 452.0003px; height: 32px; }
+.status-copy-8 { top: 508.6666px; height: 48px; }
 
 .step-title {
   margin: 0;
@@ -311,11 +314,24 @@ body {
 }
 
 .step-text {
-  margin: 1px 0 0;
+  margin: 0;
   font-size: 13.3333px;
   line-height: 16px;
   font-weight: 600;
   white-space: normal;
+}
+
+.status-copy-2 .step-text,
+.status-copy-3 .step-text,
+.status-copy-4 .step-text,
+.status-copy-6 .step-text,
+.status-copy-7 .step-text,
+.status-copy-8 .step-text {
+  margin-top: 0.3333px;
+}
+
+.status-copy-5 .step-text {
+  margin-top: 6.6667px;
 }
 
 .step-title-done,
