@@ -3,38 +3,767 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CULT Mini App</title>
+  <title>__CULT_MINI_APP_TITLE__</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://st.max.ru/js/max-web-app.js"></script>
+  <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
   <style>
+    :root {
+      --bg: #f4ede4;
+      --paper: rgba(255, 251, 245, 0.92);
+      --paper-strong: #fffaf2;
+      --ink: #171412;
+      --muted: #665a51;
+      --line: rgba(23, 20, 18, 0.1);
+      --accent: #9b4326;
+      --accent-soft: #e7b38f;
+      --success: #2f7a53;
+      --shadow: 0 24px 60px rgba(78, 41, 20, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     html, body {
       margin: 0;
-      width: 100%;
       min-height: 100%;
-      background: #ffffff;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(231, 179, 143, 0.55), transparent 34%),
+        radial-gradient(circle at top right, rgba(155, 67, 38, 0.14), transparent 26%),
+        linear-gradient(180deg, #f8f2ea 0%, #f2e7da 100%);
+      font-family: "Manrope", "Segoe UI", sans-serif;
+    }
+
+    body {
+      padding: 24px 16px 40px;
+    }
+
+    .shell {
+      max-width: 760px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero,
+    .card {
+      position: relative;
+      overflow: hidden;
+      background: var(--paper);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 26px 22px 22px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -42px -42px auto;
+      width: 164px;
+      height: 164px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(155, 67, 38, 0.18), transparent 68%);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.66);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      font-family: "Literata", Georgia, serif;
+      line-height: 1.05;
+    }
+
+    h1 {
+      margin-top: 16px;
+      font-size: clamp(34px, 9vw, 58px);
+      max-width: 10ch;
+    }
+
+    .hero p,
+    .subtle,
+    .empty-copy {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .hero p {
+      margin: 14px 0 0;
+      max-width: 50ch;
+      font-size: 15px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-size: 26px;
+      margin-bottom: 14px;
+    }
+
+    .meta-grid,
+    .facts,
+    .steps,
+    .history {
+      display: grid;
+      gap: 12px;
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .fact {
+      padding: 15px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .status-pill,
+    .env-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .status-pill {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #bf6b4c);
+    }
+
+    .env-pill {
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid var(--line);
+    }
+
+    .progress {
+      margin-top: 18px;
+      margin-bottom: 18px;
+    }
+
+    .progress-track {
+      overflow: hidden;
+      width: 100%;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(155, 67, 38, 0.12);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #d88259 0%, #9b4326 100%);
+      transition: width 240ms ease;
+    }
+
+    .progress-caption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .steps {
+      grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+    }
+
+    .step {
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.7);
+      transform: translateY(8px);
+      opacity: 0;
+      animation: rise 320ms ease forwards;
+    }
+
+    .step.active {
+      border-color: rgba(155, 67, 38, 0.3);
+      background: linear-gradient(180deg, rgba(231, 179, 143, 0.42), rgba(255, 255, 255, 0.86));
+    }
+
+    .step.done {
+      border-color: rgba(47, 122, 83, 0.25);
+      background: rgba(47, 122, 83, 0.1);
+    }
+
+    .step-index {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .step-title {
+      margin-top: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .notes {
+      margin-top: 0;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    .history {
+      margin-top: 14px;
+    }
+
+    .history-item {
+      padding: 14px 16px;
+      border-left: 3px solid rgba(155, 67, 38, 0.36);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .history-time {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .history-text {
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 16px;
+      color: #fff;
+      background: linear-gradient(135deg, #8d3b21, #bb6e4d);
+      box-shadow: 0 16px 32px rgba(155, 67, 38, 0.22);
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    }
+
+    .button.secondary {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: none;
+      border: 1px solid var(--line);
+    }
+
+    .button:active {
+      transform: translateY(1px) scale(0.995);
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 4px solid rgba(155, 67, 38, 0.15);
+      border-top-color: var(--accent);
+      animation: spin 800ms linear infinite;
+    }
+
+    .empty-copy code {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      font-family: inherit;
+      font-weight: 800;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes rise {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 16px 12px 28px;
+      }
+
+      .hero,
+      .card {
+        border-radius: 24px;
+      }
+
+      .card {
+        padding: 18px;
+      }
     }
   </style>
 </head>
 <body>
+  <main class="shell">
+    <section class="hero">
+      <span class="eyebrow" id="eyebrow">CULT MINI APP</span>
+      <h1 id="hero-title">Статус вашего заказа</h1>
+      <p id="hero-text">Откройте карточку заказа в Telegram, MAX, VK Mini App или в браузере и получите актуальный статус без переписки с менеджером.</p>
+    </section>
+
+    <section class="card stack" id="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <div>
+        <h2>Загружаю заказ</h2>
+        <p class="subtle">Проверяю токен, окружение и подтягиваю свежие данные по вашему заказу.</p>
+      </div>
+    </section>
+
+    <section class="card hidden" id="error-card">
+      <h2 id="error-title">Не удалось открыть заказ</h2>
+      <p class="empty-copy" id="error-text"></p>
+      <div class="actions">
+        <button class="button" id="retry-button" type="button">Повторить</button>
+        <a class="button secondary" id="contact-button" href="https://t.me/cultmebel?direct" target="_blank" rel="noreferrer">Связаться</a>
+      </div>
+    </section>
+
+    <section class="card hidden" id="order-card">
+      <div class="status-row">
+        <span class="status-pill" id="status-pill">Статус</span>
+        <span class="env-pill" id="env-pill">Окружение</span>
+      </div>
+      <h2 id="order-title">Заказ</h2>
+      <p class="subtle" id="order-caption"></p>
+
+      <div class="progress">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-caption" id="progress-caption"></div>
+      </div>
+
+      <div class="steps" id="steps"></div>
+    </section>
+
+    <section class="card hidden" id="facts-card">
+      <h2>Детали</h2>
+      <div class="meta-grid" id="facts"></div>
+      <div class="actions">
+        <a class="button" id="primary-contact-button" href="https://t.me/cultmebel?direct" target="_blank" rel="noreferrer">Связаться с менеджером</a>
+        <a class="button secondary" id="vk-button" href="https://vk.com/cultmebel" target="_blank" rel="noreferrer">VK</a>
+        <a class="button secondary" id="tg-button" href="https://t.me/cultmebel" target="_blank" rel="noreferrer">Telegram</a>
+      </div>
+    </section>
+
+    <section class="card hidden" id="notes-card">
+      <h2>Комментарий</h2>
+      <p class="notes" id="notes-text"></p>
+    </section>
+
+    <section class="card hidden" id="history-card">
+      <h2>История заказа</h2>
+      <div class="history" id="history"></div>
+    </section>
+
+    <p class="footer-note" id="footer-note">Если карточка открыта не из ссылки заказа, передайте токен через <code>?orderToken=...</code> или через hash-параметры Mini App.</p>
+  </main>
+
   <script>
+    const APP_TITLE = document.title || "CULT Mini App";
+    const DEFAULT_CONTACT_URL = "https://t.me/cultmebel?direct";
+    const DEFAULT_VK_URL = "https://vk.com/cultmebel";
+    const DEFAULT_TG_URL = "https://t.me/cultmebel";
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     const maxApp = window.WebApp || null;
+    const vkBridge = window.vkBridge || null;
 
-    if (tg) {
-      try {
-        tg.ready();
-        tg.expand();
-      } catch (error) {
-        console.error("Telegram bridge init failed", error);
+    const elements = {
+      eyebrow: document.getElementById("eyebrow"),
+      heroTitle: document.getElementById("hero-title"),
+      heroText: document.getElementById("hero-text"),
+      loadingCard: document.getElementById("loading-card"),
+      errorCard: document.getElementById("error-card"),
+      errorTitle: document.getElementById("error-title"),
+      errorText: document.getElementById("error-text"),
+      retryButton: document.getElementById("retry-button"),
+      contactButton: document.getElementById("contact-button"),
+      orderCard: document.getElementById("order-card"),
+      statusPill: document.getElementById("status-pill"),
+      envPill: document.getElementById("env-pill"),
+      orderTitle: document.getElementById("order-title"),
+      orderCaption: document.getElementById("order-caption"),
+      progressFill: document.getElementById("progress-fill"),
+      progressCaption: document.getElementById("progress-caption"),
+      steps: document.getElementById("steps"),
+      factsCard: document.getElementById("facts-card"),
+      facts: document.getElementById("facts"),
+      primaryContactButton: document.getElementById("primary-contact-button"),
+      vkButton: document.getElementById("vk-button"),
+      tgButton: document.getElementById("tg-button"),
+      notesCard: document.getElementById("notes-card"),
+      notesText: document.getElementById("notes-text"),
+      historyCard: document.getElementById("history-card"),
+      history: document.getElementById("history"),
+      footerNote: document.getElementById("footer-note"),
+    };
+
+    const environment = detectEnvironment();
+    const launchParams = collectLaunchParams();
+    const state = {
+      orderToken: extractOrderToken(launchParams),
+      apiBase: resolveApiBase(launchParams),
+    };
+
+    setStaticCopy();
+    initBridges();
+    wireActions();
+    loadOrder();
+
+    function setStaticCopy() {
+      document.title = APP_TITLE;
+      elements.heroTitle.textContent = APP_TITLE;
+      elements.eyebrow.textContent = "CULT ORDER TRACKING";
+      elements.envPill.textContent = environment.label;
+      elements.footerNote.innerHTML = "Если карточка открыта не из персональной ссылки заказа, передайте токен через <code>?orderToken=...</code>, <code>#orderToken=...</code> или параметр <code>startapp=order_...</code>.";
+    }
+
+    function wireActions() {
+      elements.retryButton.addEventListener("click", loadOrder);
+    }
+
+    async function initBridges() {
+      if (tg) {
+        try {
+          tg.ready();
+          tg.expand();
+        } catch (error) {
+          console.error("Telegram bridge init failed", error);
+        }
+      }
+
+      if (maxApp && typeof maxApp.ready === "function") {
+        try {
+          maxApp.ready();
+        } catch (error) {
+          console.error("MAX bridge init failed", error);
+        }
+      }
+
+      if (vkBridge && typeof vkBridge.send === "function") {
+        try {
+          await vkBridge.send("VKWebAppInit");
+        } catch (error) {
+          console.error("VK bridge init failed", error);
+        }
       }
     }
 
-    if (maxApp && typeof maxApp.ready === "function") {
-      try {
-        maxApp.ready();
-      } catch (error) {
-        console.error("MAX bridge init failed", error);
+    async function loadOrder() {
+      showState("loading");
+
+      if (!state.orderToken) {
+        showError(
+          "Не вижу токен заказа.",
+          "Откройте mini app по персональной ссылке клиента или передайте токен в URL. Поддерживаются параметры <code>orderToken</code>, <code>token</code> и <code>startapp=order_...</code>."
+        );
+        return;
       }
+
+      const endpoint = buildOrderEndpoint(state.apiBase, state.orderToken);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+        });
+
+        let payload = null;
+        try {
+          payload = await response.json();
+        } catch (error) {
+          payload = null;
+        }
+
+        if (!response.ok || !payload || payload.ok !== true || !payload.order) {
+          const message = payload && payload.error ? payload.error : "Сервер не вернул данные заказа.";
+          throw new Error(message);
+        }
+
+        renderOrder(payload.order);
+        showState("ready");
+      } catch (error) {
+        console.error("Order load failed", error);
+        showError(
+          "Не удалось получить статус заказа.",
+          `${escapeHtml(error && error.message ? error.message : "Неизвестная ошибка")}. Проверьте токен или адрес API.`
+        );
+      }
+    }
+
+    function renderOrder(order) {
+      const support = order.support_links || {};
+      const progressPercent = Math.max(0, Math.min(100, order.progress_percent || 0));
+      const facts = [
+        { label: "Заказ", value: `#${order.id}` },
+        { label: "Цена", value: order.total_price_label || "—" },
+        { label: "Оплачено", value: order.paid_text || "—" },
+        { label: "Получение", value: order.delivery_mode_label || "—" },
+        { label: "Создан", value: order.created_at_label || "—" },
+        { label: "Обновлён", value: order.updated_at_label || "—" },
+      ];
+
+      if (order.delivery_planned_for_label) {
+        facts.push({ label: "Доставка", value: order.delivery_planned_for_label });
+      }
+
+      if (order.completed_at_label) {
+        facts.push({ label: "Завершён", value: order.completed_at_label });
+      }
+
+      elements.statusPill.textContent = order.status_label || "Статус";
+      elements.orderTitle.textContent = order.title || `Заказ #${order.id}`;
+      elements.orderCaption.textContent = `Заказ #${order.id} • ${order.created_via_label || "Канал не указан"} • токен ${order.token}`;
+      elements.progressFill.style.width = `${progressPercent}%`;
+      elements.progressCaption.textContent = `${order.status_text || ""} • ${order.status_step || 0}/${order.status_total_steps || 0}`;
+      elements.primaryContactButton.href = support.contact || DEFAULT_CONTACT_URL;
+      elements.contactButton.href = support.contact || DEFAULT_CONTACT_URL;
+      elements.vkButton.href = support.vk || DEFAULT_VK_URL;
+      elements.tgButton.href = support.telegram || DEFAULT_TG_URL;
+
+      elements.facts.innerHTML = facts
+        .map((item) => `
+          <article class="fact">
+            <span class="label">${escapeHtml(item.label)}</span>
+            <span class="value">${escapeHtml(item.value)}</span>
+          </article>
+        `)
+        .join("");
+
+      elements.steps.innerHTML = (order.status_timeline || [])
+        .map((step, index) => {
+          const classes = ["step"];
+          if (step.done) classes.push("done");
+          if (step.active) classes.push("active");
+          return `
+            <article class="${classes.join(" ")}" style="animation-delay:${index * 60}ms">
+              <span class="step-index">${escapeHtml(step.done ? "готово" : step.active ? "сейчас" : `этап ${step.index}`)}</span>
+              <div class="step-title">${escapeHtml(step.label)}</div>
+            </article>
+          `;
+        })
+        .join("");
+
+      if (order.notes) {
+        elements.notesText.textContent = order.notes;
+        elements.notesCard.classList.remove("hidden");
+      } else {
+        elements.notesCard.classList.add("hidden");
+      }
+
+      const historyItems = Array.isArray(order.history) ? order.history : [];
+      if (historyItems.length) {
+        elements.history.innerHTML = historyItems
+          .map((item) => `
+            <article class="history-item">
+              <span class="history-time">${escapeHtml(item.timestamp_label || item.timestamp || "—")}</span>
+              <div class="history-text">${escapeHtml(item.text || "")}</div>
+            </article>
+          `)
+          .join("");
+        elements.historyCard.classList.remove("hidden");
+      } else {
+        elements.historyCard.classList.add("hidden");
+      }
+    }
+
+    function showState(mode) {
+      elements.loadingCard.classList.toggle("hidden", mode !== "loading");
+      elements.errorCard.classList.toggle("hidden", mode !== "error");
+      const ready = mode === "ready";
+      elements.orderCard.classList.toggle("hidden", !ready);
+      elements.factsCard.classList.toggle("hidden", !ready);
+    }
+
+    function showError(title, htmlText) {
+      showState("error");
+      elements.orderCard.classList.add("hidden");
+      elements.factsCard.classList.add("hidden");
+      elements.notesCard.classList.add("hidden");
+      elements.historyCard.classList.add("hidden");
+      elements.errorTitle.textContent = title;
+      elements.errorText.innerHTML = htmlText;
+    }
+
+    function detectEnvironment() {
+      if (tg) {
+        return { key: "telegram", label: "Telegram WebApp" };
+      }
+      if (maxApp) {
+        return { key: "max", label: "MAX WebApp" };
+      }
+      if (hasVkLaunchParams() || vkBridge) {
+        return { key: "vk", label: "VK Mini App" };
+      }
+      return { key: "browser", label: "Browser" };
+    }
+
+    function collectLaunchParams() {
+      const params = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+      const hashParams = new URLSearchParams(hash);
+      const launch = {};
+
+      for (const [key, value] of params.entries()) {
+        if (!(key in launch)) {
+          launch[key] = value;
+        }
+      }
+      for (const [key, value] of hashParams.entries()) {
+        if (!(key in launch)) {
+          launch[key] = value;
+        }
+      }
+
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param && !launch.startapp) {
+        launch.startapp = String(tg.initDataUnsafe.start_param);
+      }
+
+      return launch;
+    }
+
+    function extractOrderToken(params) {
+      const directKeys = ["orderToken", "order_token", "token"];
+      for (const key of directKeys) {
+        const value = params[key];
+        if (value && value.trim()) {
+          return value.trim();
+        }
+      }
+
+      const startapp = params.startapp || params.vk_ref || "";
+      if (startapp.startsWith("order_")) {
+        return startapp.slice("order_".length);
+      }
+
+      return "";
+    }
+
+    function resolveApiBase(params) {
+      const explicit = params.apiBase || params.api_base || "";
+      if (explicit) {
+        return explicit.replace(/\/+$/, "");
+      }
+      return window.location.origin.replace(/\/+$/, "");
+    }
+
+    function buildOrderEndpoint(apiBase, orderToken) {
+      const base = apiBase || window.location.origin;
+      return `${base}/api/order?token=${encodeURIComponent(orderToken)}`;
+    }
+
+    function hasVkLaunchParams() {
+      return /(?:^|[?#&])vk_app_id=/.test(window.location.href);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
     }
   </script>
 </body>

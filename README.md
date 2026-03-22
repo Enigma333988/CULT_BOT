@@ -114,11 +114,18 @@ python bot.py
 
 ### Mini App
 
-При том же запуске бот поднимает минимальную web-страницу Mini App на `http://127.0.0.1:8080/` или на значениях из `MINI_APP_HOST` и `MINI_APP_PORT`.
+При том же запуске бот поднимает Mini App на `http://127.0.0.1:8080/` или на значениях из `MINI_APP_HOST` и `MINI_APP_PORT`.
 
 Чтобы Telegram открывал эту страницу прямо внутри приложения, нужно указать `MINI_APP_PUBLIC_URL` с публичным `https://` адресом. После этого бот зарегистрирует кнопку меню и команду `/miniapp` для запуска Mini App.
 
-Для простой публикации на обычном хостинге без Python можно использовать готовый статический файл [miniapp/index.html](/C:/Users/shiro/Desktop/CULT_BOT/miniapp/index.html). В нём уже есть базовое определение среды `browser / telegram / max` и стартовая bridge-обвязка для Telegram и MAX.
+Теперь Mini App умеет:
+
+* определять среду `browser / telegram / max / vk`;
+* читать токен заказа из `?orderToken=...`, `?token=...`, `#orderToken=...` и `startapp=order_<token>`;
+* запрашивать актуальный статус заказа через `GET /api/order?token=<token>`;
+* показывать карточку заказа, прогресс по этапам, оплату и историю изменений.
+
+Для VK Mini App можно использовать тот же URL, если он опубликован по `https://`. Если статический файл [miniapp/index.html](/C:/Users/shiro/Desktop/CULT_BOT/miniapp/index.html) лежит отдельно от Python-сервера, передайте адрес backend через `?apiBase=https://example.com`.
 
 > Сейчас интеграция с MAX работает через **long polling**. Для production документация MAX рекомендует использовать **Webhook**.
 
