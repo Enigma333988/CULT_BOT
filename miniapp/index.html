@@ -12,15 +12,14 @@
   <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
   <style>
     :root {
-      --screen: 360px;
-      --page-bg: #ffffff;
-      --surface: #efefef;
+      --accent: #ff6c36;
+      --accent-soft: #ffae91;
       --text: #454545;
+      --text-dark: #3d3d3d;
       --text-muted: #747474;
       --text-soft: #aeaeae;
       --text-caption: #616161;
-      --accent: #ff6c36;
-      --accent-soft: #ffae91;
+      --surface: #efefef;
     }
 
     * {
@@ -30,7 +29,7 @@
     html, body {
       margin: 0;
       min-height: 100%;
-      background: var(--page-bg);
+      background: #ffffff;
       font-family: "Montserrat", sans-serif;
       color: var(--text);
     }
@@ -38,61 +37,75 @@
     body {
       display: flex;
       justify-content: center;
+      overflow-x: hidden;
     }
 
     .app {
-      width: min(100%, var(--screen));
+      width: min(100%, 360px);
       min-height: 100vh;
-      background: #fff;
-      overflow-x: hidden;
-      padding-bottom: 18px;
+      background: #ffffff;
+    }
+
+    .screen {
+      position: relative;
+      width: 360px;
+      min-height: 1161.3334px;
+      background: #ffffff;
     }
 
     .hero {
-      width: 100%;
-      height: 120.33px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 360px;
+      height: 120.3333px;
       background: center top / cover no-repeat url("https://www.figma.com/api/mcp/asset/6ad5e238-90e1-4f07-94da-22f6d2d566d2");
     }
 
-    .content {
-      padding: 0 23px 24px;
-    }
-
     .photo-card {
-      margin-top: -29.66px;
+      position: absolute;
+      left: 23px;
+      top: 90.6665px;
       width: 314px;
       height: 235px;
-      border-radius: 16.33px;
+      border-radius: 16.3333px;
       background: var(--surface);
-      overflow: hidden;
     }
 
-    .photo {
-      display: block;
-      width: 194.67px;
-      height: 148px;
-      margin: 29.67px auto 0;
+    .product-photo {
+      position: absolute;
+      left: 82.6667px;
+      top: 120.3331px;
+      width: 194.9018px;
+      height: 147.8217px;
       object-fit: cover;
+      display: block;
     }
 
     .photo-caption {
-      margin: 21px 0 0;
+      position: absolute;
+      left: 80.6667px;
+      top: 289.3333px;
+      width: 199px;
+      margin: 0;
       color: var(--text-caption);
-      font-size: 10.67px;
-      line-height: 1.2;
+      font-size: 10.6667px;
+      line-height: normal;
       font-weight: 600;
       text-align: center;
       letter-spacing: 0;
     }
 
     .order-id {
+      position: absolute;
+      left: 108.6667px;
+      top: 336.3331px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 5.67px;
-      margin-top: 9.67px;
-      font-size: 13.33px;
-      line-height: 1.2;
+      gap: 6.3333px;
+      height: 16px;
+      font-size: 13.3333px;
+      line-height: normal;
       font-weight: 500;
       white-space: nowrap;
     }
@@ -101,89 +114,125 @@
       font-weight: 600;
     }
 
-    .copy-icon {
-      width: 14.67px;
-      height: 14.67px;
-      object-fit: contain;
+    .copy-stack {
+      position: relative;
+      width: 12.2222px;
+      height: 12.2222px;
+      margin-top: 0.4px;
+    }
+
+    .copy-stack::before,
+    .copy-stack::after {
+      content: "";
+      position: absolute;
+      width: 8.5556px;
+      height: 8.5556px;
+      border: 1.2px solid var(--accent);
+      border-radius: 1.4px;
+      background: transparent;
+    }
+
+    .copy-stack::before {
+      left: 0;
+      top: 0;
+    }
+
+    .copy-stack::after {
+      left: 3.6667px;
+      top: 3.6667px;
     }
 
     .title {
-      margin: 7px 0 0;
+      position: absolute;
+      left: 23px;
+      top: 359.3331px;
+      width: 314px;
+      margin: 0;
       color: var(--accent);
-      font-size: 16.67px;
-      line-height: 1.2;
+      font-size: 16.6667px;
+      line-height: normal;
       font-weight: 700;
     }
 
     .note {
+      position: absolute;
+      left: 23px;
+      top: 379.6665px;
+      width: 314px;
       margin: 0;
       color: var(--text);
-      font-size: 13.33px;
-      line-height: 1.2;
+      font-size: 13.3333px;
+      line-height: normal;
       font-weight: 500;
     }
 
-    .price-block {
-      margin-top: 15.33px;
-    }
-
-    .price-row {
-      display: flex;
-      align-items: baseline;
-      gap: 3px;
-      flex-wrap: wrap;
-    }
-
     .price-current {
+      position: absolute;
+      left: 23px;
+      top: 422.6665px;
       margin: 0;
       color: var(--accent);
-      font-size: 16.67px;
-      line-height: 1.2;
+      font-size: 16.6667px;
+      line-height: normal;
       font-weight: 700;
+      white-space: nowrap;
     }
 
     .price-old {
+      position: absolute;
+      left: 160.3333px;
+      top: 424.6664px;
       margin: 0;
       color: var(--text-soft);
-      font-size: 13.33px;
-      line-height: 1.2;
+      font-size: 13.3333px;
+      line-height: normal;
       font-weight: 500;
       text-decoration: line-through;
       text-decoration-thickness: 1px;
       text-decoration-skip-ink: none;
+      white-space: nowrap;
     }
 
     .paid {
-      margin: 1px 0 0;
+      position: absolute;
+      left: 23px;
+      top: 441.6665px;
+      width: 261px;
+      margin: 0;
       color: var(--text);
-      font-size: 13.33px;
-      line-height: 1.2;
+      font-size: 13.3333px;
+      line-height: normal;
       font-weight: 500;
+      white-space: nowrap;
     }
 
     .pay-button {
-      display: block;
+      position: absolute;
+      left: 23px;
+      top: 472.3333px;
       width: 314px;
-      height: 47.67px;
-      margin-top: 19.33px;
+      height: 47.6667px;
       border: 0;
-      border-radius: 16.67px;
+      border-radius: 16.6667px;
       background: var(--accent);
-      color: #fff;
+      color: #ffffff;
       font-family: inherit;
-      font-size: 16.67px;
-      line-height: 1;
+      font-size: 16.6667px;
+      line-height: normal;
       font-weight: 700;
       cursor: default;
     }
 
     .offer {
-      margin: 5.33px 0 0;
+      position: absolute;
+      left: 67px;
+      top: 528.3333px;
+      width: 229px;
+      margin: 0;
       color: var(--text);
       font-size: 10px;
-      line-height: 1.24;
+      line-height: normal;
       font-weight: 500;
-      text-align: center;
       white-space: nowrap;
     }
 
@@ -195,214 +244,228 @@
     }
 
     .status-card {
-      position: relative;
+      position: absolute;
+      left: 23px;
+      top: 551.6664px;
       width: 314px;
-      margin-top: 15px;
-      padding: 15.33px 14px 18px;
-      border-radius: 16.67px;
+      height: 583px;
+      border-radius: 16.6667px;
       background: var(--surface);
     }
 
-    .status-head {
+    .status-heading {
+      position: absolute;
+      left: 98.3334px;
+      top: 566.9998px;
       display: flex;
-      justify-content: center;
       align-items: center;
-      gap: 2px;
-      margin-bottom: 17px;
-      font-size: 13.33px;
-      line-height: 1.2;
+      gap: 2.3333px;
+      margin: 0;
+      white-space: nowrap;
     }
 
-    .status-head span {
+    .status-heading span,
+    .status-heading strong {
+      font-size: 13.3333px;
+      line-height: normal;
+    }
+
+    .status-heading span {
       color: var(--text);
       font-weight: 600;
     }
 
-    .status-head strong {
+    .status-heading strong {
       color: var(--accent);
       font-weight: 700;
     }
 
-    .timeline {
-      position: relative;
-      padding-left: 46px;
-    }
-
-    .timeline::before {
-      content: "";
+    .line {
       position: absolute;
-      left: 20px;
-      top: 16px;
-      bottom: 16px;
-      width: 2.67px;
-      border-radius: 999px;
-      background: linear-gradient(
-        180deg,
-        var(--accent) 0%,
-        var(--accent) 31%,
-        var(--accent-soft) 31%,
-        var(--accent-soft) 100%
-      );
+      left: 65.6667px;
+      width: 2.6667px;
+      border-radius: 20px;
     }
 
-    .step {
-      position: relative;
-      min-height: 52px;
-      padding-bottom: 11px;
+    .line.done {
+      background: var(--accent);
     }
 
-    .step:last-child {
-      padding-bottom: 0;
+    .line.pending {
+      background: var(--accent-soft);
     }
 
-    .step::before {
-      content: "";
+    .dot {
       position: absolute;
-      left: -26.5px;
-      top: 2px;
-      width: 19px;
-      height: 19px;
+      left: 47.6667px;
+      width: 32.9712px;
+      height: 32.9712px;
       border-radius: 50%;
-      background: #fff;
+      background: #ffffff;
       border: 2px solid var(--accent-soft);
     }
 
-    .step.done::before,
-    .step.current::before {
+    .dot.done,
+    .dot.current {
       background: var(--accent);
       border-color: var(--accent);
     }
 
-    .step.done::after {
+    .dot.done::after {
       content: "";
       position: absolute;
-      left: -20px;
+      left: 8.3px;
+      top: 9.6px;
+      width: 16px;
+      height: 13px;
+      background: center / contain no-repeat;
+    }
+
+    .dot.done.icon-1::after {
+      background-image: url("https://www.figma.com/api/mcp/asset/58c9a626-bda2-4bfc-917a-655f7d4093d0");
+      background-size: 52px 30.4655px;
+      background-position: -24px -10px;
+    }
+
+    .dot.done.icon-2::after {
+      background-image: url("https://www.figma.com/api/mcp/asset/b483098b-b2e7-4edd-a587-5e248d448ff7");
+      background-size: 52px 30.4655px;
+      background-position: -24px -10px;
+    }
+
+    .dot.current::after {
+      content: "";
+      position: absolute;
+      left: 8px;
       top: 8px;
-      width: 6px;
-      height: 3px;
-      border-left: 1.5px solid #fff;
-      border-bottom: 1.5px solid #fff;
-      transform: rotate(-45deg);
+      width: 16px;
+      height: 13px;
+      background: center / contain no-repeat url("https://www.figma.com/api/mcp/asset/07664377-2e96-4b75-b308-06c57cbf181e");
+      background-size: 52px 30.4655px;
+      background-position: -24px -10px;
+      filter: brightness(0) invert(1);
     }
 
     .step-title {
-      margin: 0 0 1px;
-      font-size: 12px;
-      line-height: 1.18;
-      font-weight: 700;
-    }
-
-    .step-desc {
+      position: absolute;
+      left: 91.3333px;
       margin: 0;
-      font-size: 11px;
-      line-height: 1.16;
-      font-weight: 600;
-      color: #3d3d3d;
+      font-size: 16px;
+      line-height: normal;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
-    .step.done .step-title,
-    .step.current .step-title {
+    .step-text {
+      position: absolute;
+      left: 91.3333px;
+      width: 192.6667px;
+      margin: 0;
+      font-size: 16px;
+      line-height: normal;
+      font-weight: 600;
+    }
+
+    .done-text {
       color: var(--accent);
     }
 
-    .step.pending .step-title {
+    .current-text {
+      color: var(--accent);
+    }
+
+    .pending-title {
       color: var(--accent-soft);
     }
 
-    .step.pending .step-desc {
+    .current-body,
+    .done-body {
+      color: var(--text-dark);
+    }
+
+    .pending-body {
       color: var(--text-muted);
     }
 
     @media (max-width: 359px) {
-      .content {
-        padding-left: 12px;
-        padding-right: 12px;
+      .app {
+        width: 100%;
       }
 
-      .photo-card,
-      .pay-button,
-      .status-card {
-        width: 100%;
+      .screen {
+        transform: scale(calc(100vw / 360));
+        transform-origin: top left;
+        height: calc(1161.3334px * (100vw / 360));
       }
     }
   </style>
 </head>
 <body>
   <main class="app">
-    <header class="hero" aria-hidden="true"></header>
+    <section class="screen">
+      <header class="hero"></header>
 
-    <section class="content">
-      <div class="photo-card">
-        <img class="photo" src="https://www.figma.com/api/mcp/asset/568374e3-fd52-47e6-a60e-ef5c14fd05f0" alt="Фото товара">
-        <p class="photo-caption">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</p>
-      </div>
+      <div class="photo-card"></div>
+      <img class="product-photo" src="https://www.figma.com/api/mcp/asset/568374e3-fd52-47e6-a60e-ef5c14fd05f0" alt="Фото товара">
+      <p class="photo-caption">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</p>
 
       <div class="order-id">
         <span>Номер заказа: <strong>#4</strong></span>
-        <img class="copy-icon" src="https://www.figma.com/api/mcp/asset/e3d24014-010e-48c8-b31b-b6cc078c1769" alt="">
+        <span class="copy-stack" aria-hidden="true"></span>
       </div>
 
       <h1 class="title">Кровать для мамы 160х200</h1>
       <p class="note">Примечание: Тут всякая инфа типо конфигурация или иные изменения</p>
 
-      <div class="price-block">
-        <div class="price-row">
-          <p class="price-current">Цена: 48.400 ₽</p>
-          <p class="price-old">58.900 ₽</p>
-        </div>
-        <p class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</p>
-      </div>
+      <p class="price-current">Цена: 48.400 ₽</p>
+      <p class="price-old">58.900 ₽</p>
+      <p class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</p>
 
       <button class="pay-button" type="button">Оплатить</button>
       <p class="offer">Оплата подтверждает согласие с <strong>офертой.</strong></p>
 
-      <section class="status-card">
-        <div class="status-head">
-          <span>Статус:</span>
-          <strong>В очереди (3/8)</strong>
-        </div>
+      <div class="status-card"></div>
+      <p class="status-heading"><span>Статус:</span><strong>В очереди (3/8)</strong></p>
 
-        <div class="timeline">
-          <article class="step done">
-            <h2 class="step-title">Заказ создан.</h2>
-          </article>
+      <div class="line done" style="top:633.9997px;height:11px;"></div>
+      <div class="line done" style="top:690.6665px;height:18px;"></div>
+      <div class="line pending" style="top:754.3329px;height:34px;"></div>
+      <div class="line pending" style="top:833.6663px;height:18px;"></div>
+      <div class="line pending" style="top:897.3332px;height:34px;"></div>
+      <div class="line pending" style="top:978.3328px;height:11px;"></div>
+      <div class="line pending" style="top:1034.9996px;height:11px;"></div>
 
-          <article class="step done">
-            <h2 class="step-title">Ожидает подтверждения.</h2>
-            <p class="step-desc">Проверьте детали, оферту и сумму к оплате.</p>
-          </article>
+      <div class="dot done icon-1" style="top:594px;"></div>
+      <div class="dot done icon-2" style="top:651px;"></div>
+      <div class="dot current" style="top:715px;"></div>
+      <div class="dot" style="top:794.6667px;"></div>
+      <div class="dot" style="top:858px;"></div>
+      <div class="dot" style="top:937.6663px;"></div>
+      <div class="dot" style="top:995.6665px;"></div>
+      <div class="dot" style="top:1052.3325px;"></div>
 
-          <article class="step current">
-            <h2 class="step-title">В очереди.</h2>
-            <p class="step-desc">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
-          </article>
+      <p class="step-title done-text" style="top:602.9998px;">Заказ создан.</p>
 
-          <article class="step pending">
-            <h2 class="step-title">В работе.</h2>
-            <p class="step-desc">Мы работаем над вашим заказом.</p>
-          </article>
+      <p class="step-title done-text" style="top:659.6667px;">Ожидает подтверждения.</p>
+      <p class="step-text done-body" style="top:675.9997px;">Проверьте детали, оферту и сумму к оплате.</p>
 
-          <article class="step pending">
-            <h2 class="step-title">На согласовании.</h2>
-            <p class="step-desc">Проверьте результат и подтвердите, что всё устраивает.</p>
-          </article>
+      <p class="step-title current-text" style="top:723.0000px;">В очереди.</p>
+      <p class="step-text current-body" style="top:739.3331px;">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
 
-          <article class="step pending">
-            <h2 class="step-title">Готов к выдаче / отправке.</h2>
-            <p class="step-desc">Заказ упакован и ожидает.</p>
-          </article>
+      <p class="step-title pending-title" style="top:802.6664px;">В работе.</p>
+      <p class="step-text pending-body" style="top:818.9995px;">Мы работаем над вашим заказом.</p>
 
-          <article class="step pending">
-            <h2 class="step-title">В пути.</h2>
-            <p class="step-desc">Заказ в пути.</p>
-          </article>
+      <p class="step-title pending-title" style="top:859.6663px;">На согласовании.</p>
+      <p class="step-text pending-body" style="top:882.3333px;">Проверьте результат и подтвердите, что всё устраивает.</p>
 
-          <article class="step pending">
-            <h2 class="step-title">Завершённый заказ.</h2>
-            <p class="step-desc">Заказ завершён. Спасибо за покупку!</p>
-          </article>
-        </div>
-      </section>
+      <p class="step-title pending-title" style="top:945.6667px;">Готов к выдаче / отправке.</p>
+      <p class="step-text pending-body" style="top:961.9997px;">Заказ упакован и ожидает.</p>
+
+      <p class="step-title pending-title" style="top:1003.6667px;">В пути.</p>
+      <p class="step-text pending-body" style="top:1019.9998px;">Заказ в пути.</p>
+
+      <p class="step-title pending-title" style="top:1060.3330px;">Завершённый заказ.</p>
+      <p class="step-text pending-body" style="top:1076.6666px;">Заказ завершён. Спасибо за покупку!</p>
     </section>
   </main>
 
