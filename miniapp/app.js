@@ -105,12 +105,18 @@ function setupBridges() {
   }
 
   if (!initVkBridge()) {
-    loadScript("https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js", 6000)
+    loadScript("./vendor/vk-bridge.browser.min.js", 4000)
       .then(() => {
         initVkBridge();
       })
-      .catch((error) => {
-        console.warn(error.message);
+      .catch(() => {
+        loadScript("https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js", 6000)
+          .then(() => {
+            initVkBridge();
+          })
+          .catch((error) => {
+            console.warn(error.message);
+          });
       });
   }
 }

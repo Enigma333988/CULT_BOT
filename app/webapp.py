@@ -116,6 +116,7 @@ class MiniAppServer:
                     path in {"/styles.css", "/app.js", "/header_logo.svg"}
                     or path.startswith("/mockups/")
                     or path.startswith("/fonts/")
+                    or path.startswith("/vendor/")
                 ):
                     asset_path = self._resolve_static_asset(path, mini_app_root)
                     if asset_path is None or not asset_path.is_file():
