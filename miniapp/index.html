@@ -51,6 +51,7 @@
       width: 360px;
       min-height: 1161.3334px;
       background: #ffffff;
+      overflow: hidden;
     }
 
     .hero {
@@ -60,6 +61,7 @@
       width: 360px;
       height: 120.3333px;
       background: center top / cover no-repeat url("https://www.figma.com/api/mcp/asset/6ad5e238-90e1-4f07-94da-22f6d2d566d2");
+      z-index: 5;
     }
 
     .photo-card {
@@ -70,6 +72,7 @@
       height: 235px;
       border-radius: 16.3333px;
       background: var(--surface);
+      z-index: 1;
     }
 
     .product-photo {
@@ -80,6 +83,7 @@
       height: 147.8217px;
       object-fit: cover;
       display: block;
+      z-index: 2;
     }
 
     .photo-caption {
@@ -94,6 +98,7 @@
       font-weight: 600;
       text-align: center;
       letter-spacing: 0;
+      z-index: 2;
     }
 
     .order-id {
@@ -251,6 +256,7 @@
       height: 583px;
       border-radius: 16.6667px;
       background: var(--surface);
+      z-index: 1;
     }
 
     .status-heading {
@@ -262,6 +268,7 @@
       gap: 2.3333px;
       margin: 0;
       white-space: nowrap;
+      z-index: 4;
     }
 
     .status-heading span,
@@ -285,6 +292,7 @@
       left: 65.6667px;
       width: 2.6667px;
       border-radius: 20px;
+      z-index: 2;
     }
 
     .line.done {
@@ -303,6 +311,7 @@
       border-radius: 50%;
       background: #ffffff;
       border: 2px solid var(--accent-soft);
+      z-index: 3;
     }
 
     .dot.done,
@@ -350,10 +359,11 @@
       position: absolute;
       left: 91.3333px;
       margin: 0;
-      font-size: 16px;
-      line-height: normal;
+      font-size: 13.3333px;
+      line-height: 16px;
       font-weight: 700;
       white-space: nowrap;
+      z-index: 4;
     }
 
     .step-text {
@@ -361,9 +371,11 @@
       left: 91.3333px;
       width: 192.6667px;
       margin: 0;
-      font-size: 16px;
-      line-height: normal;
+      font-size: 13.3333px;
+      line-height: 16px;
       font-weight: 600;
+      white-space: normal;
+      z-index: 4;
     }
 
     .done-text {
