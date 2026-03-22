@@ -4,118 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>__CULT_MINI_APP_TITLE__</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://st.max.ru/js/max-web-app.js"></script>
   <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 </head>
 <body>
-  <main class="app">
-    <section class="screen">
-      <header class="hero" aria-hidden="true"></header>
-
-      <section class="product-card" aria-label="Карточка заказа">
-        <div class="photo-card"></div>
-        <img
-          class="product-photo"
-          src="https://www.figma.com/api/mcp/asset/568374e3-fd52-47e6-a60e-ef5c14fd05f0"
-          alt="Фото товара"
-        >
-        <p class="photo-caption">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</p>
-
-        <div class="order-id">
-          <span>Номер заказа: <strong>#4</strong></span>
-          <span class="copy-stack" aria-hidden="true"></span>
-        </div>
-
-        <h1 class="title">Кровать для мамы 160х200</h1>
-        <p class="note">Примечание: Тут всякая инфа типо конфигурация или иные изменения</p>
-
-        <p class="price-current">Цена: 48.400 ₽</p>
-        <p class="price-old">58.900 ₽</p>
-        <p class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</p>
-
-        <button class="pay-button" type="button">Оплатить</button>
-        <p class="offer">Оплата подтверждает согласие с <strong>офертой.</strong></p>
-      </section>
-
-      <section class="status-card" aria-label="Статус заказа">
-        <p class="status-heading">
-          <span>Статус:</span>
-          <strong>В очереди (3/8)</strong>
-        </p>
-
-        <svg class="status-graphic" viewBox="0 0 314 583" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="0" y="0" width="314" height="583" rx="16.6667" fill="#EFEFEF"/>
-
-          <rect x="42.6667" y="82.3333" width="2.6667" height="11" rx="10" fill="#FF6C36"/>
-          <rect x="42.6667" y="139" width="2.6667" height="18" rx="10" fill="#FF6C36"/>
-          <rect x="42.6667" y="202.6665" width="2.6667" height="34" rx="10" fill="#FFAE91"/>
-          <rect x="42.6667" y="281.9999" width="2.6667" height="18" rx="10" fill="#FFAE91"/>
-          <rect x="42.6667" y="345.6668" width="2.6667" height="34" rx="10" fill="#FFAE91"/>
-          <rect x="42.6667" y="426.6664" width="2.6667" height="11" rx="10" fill="#FFAE91"/>
-          <rect x="42.6667" y="483.3332" width="2.6667" height="11" rx="10" fill="#FFAE91"/>
-
-          <circle cx="41.1523" cy="58.8192" r="16.4856" fill="#FF6C36"/>
-          <circle cx="41.1523" cy="115.8192" r="16.4856" fill="#FF6C36"/>
-          <circle cx="41.1523" cy="179.8192" r="16.4856" fill="#FF6C36"/>
-
-          <circle cx="41.1523" cy="259.4863" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
-          <circle cx="41.1523" cy="322.8192" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
-          <circle cx="41.1523" cy="402.4859" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
-          <circle cx="41.1523" cy="460.4861" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
-          <circle cx="41.1523" cy="517.1527" r="15.1523" fill="#EFEFEF" stroke="#FFAE91" stroke-width="2.6667"/>
-
-          <path d="M34 58.5L39.5 64L48 53.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M34 115.5L39.5 121L48 110.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M34 179.5L39.5 185L48 174.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-
-        <div class="status-copy status-copy-1">
-          <p class="step-title step-title-done">Заказ создан.</p>
-        </div>
-
-        <div class="status-copy status-copy-2">
-          <p class="step-title step-title-done">Ожидает подтверждения.</p>
-          <p class="step-text step-text-done">Проверьте детали, оферту и сумму к оплате.</p>
-        </div>
-
-        <div class="status-copy status-copy-3">
-          <p class="step-title step-title-current">В очереди.</p>
-          <p class="step-text step-text-current">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
-        </div>
-
-        <div class="status-copy status-copy-4">
-          <p class="step-title step-title-pending">В работе.</p>
-          <p class="step-text step-text-pending">Мы работаем над вашим заказом.</p>
-        </div>
-
-        <div class="status-copy status-copy-5">
-          <p class="step-title step-title-pending">На согласовании.</p>
-          <p class="step-text step-text-pending">Проверьте результат и подтвердите, что всё устраивает.</p>
-        </div>
-
-        <div class="status-copy status-copy-6">
-          <p class="step-title step-title-pending">Готов к выдаче / отправке.</p>
-          <p class="step-text step-text-pending">Заказ упакован и ожидает.</p>
-        </div>
-
-        <div class="status-copy status-copy-7">
-          <p class="step-title step-title-pending">В пути.</p>
-          <p class="step-text step-text-pending">Заказ в пути.</p>
-        </div>
-
-        <div class="status-copy status-copy-8">
-          <p class="step-title step-title-pending">Завершённый заказ.</p>
-          <p class="step-text step-text-pending">Заказ завершён. Спасибо за покупку!</p>
-        </div>
-      </section>
-    </section>
-  </main>
-
   <script src="./app.js"></script>
 </body>
 </html>
