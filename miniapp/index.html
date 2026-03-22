@@ -7,378 +7,46 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://st.max.ru/js/max-web-app.js"></script>
   <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-  <style>
-    :root {
-      --accent: #ff6c36;
-      --accent-soft: #ffae91;
-      --text: #454545;
-      --text-dark: #3d3d3d;
-      --text-muted: #747474;
-      --text-soft: #aeaeae;
-      --text-caption: #616161;
-      --surface: #efefef;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background: #ffffff;
-      font-family: "Montserrat", sans-serif;
-      color: var(--text);
-    }
-
-    body {
-      display: flex;
-      justify-content: center;
-      overflow-x: hidden;
-    }
-
-    .app {
-      width: min(100%, 360px);
-      min-height: 100vh;
-      background: #ffffff;
-    }
-
-    .screen {
-      position: relative;
-      width: 360px;
-      min-height: 1161.3334px;
-      background: #ffffff;
-      overflow: hidden;
-    }
-
-    .hero {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 360px;
-      height: 120.3333px;
-      background: center top / cover no-repeat url("https://www.figma.com/api/mcp/asset/6ad5e238-90e1-4f07-94da-22f6d2d566d2");
-      z-index: 5;
-    }
-
-    .photo-card {
-      position: absolute;
-      left: 23px;
-      top: 90.6665px;
-      width: 314px;
-      height: 235px;
-      border-radius: 16.3333px;
-      background: var(--surface);
-      z-index: 1;
-    }
-
-    .product-photo {
-      position: absolute;
-      left: 82.6667px;
-      top: 120.3331px;
-      width: 194.9018px;
-      height: 147.8217px;
-      object-fit: cover;
-      display: block;
-      z-index: 2;
-    }
-
-    .photo-caption {
-      position: absolute;
-      left: 80.6667px;
-      top: 289.3333px;
-      width: 199px;
-      margin: 0;
-      color: var(--text-caption);
-      font-size: 10.6667px;
-      line-height: normal;
-      font-weight: 600;
-      text-align: center;
-      letter-spacing: 0;
-      z-index: 2;
-    }
-
-    .order-id {
-      position: absolute;
-      left: 108.6667px;
-      top: 336.3331px;
-      display: flex;
-      align-items: center;
-      gap: 6.3333px;
-      height: 16px;
-      font-size: 13.3333px;
-      line-height: normal;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .order-id strong {
-      font-weight: 600;
-    }
-
-    .copy-stack {
-      position: relative;
-      width: 12.2222px;
-      height: 12.2222px;
-      margin-top: 0.4px;
-    }
-
-    .copy-stack::before,
-    .copy-stack::after {
-      content: "";
-      position: absolute;
-      width: 8.5556px;
-      height: 8.5556px;
-      border: 1.2px solid var(--accent);
-      border-radius: 1.4px;
-      background: transparent;
-    }
-
-    .copy-stack::before {
-      left: 0;
-      top: 0;
-    }
-
-    .copy-stack::after {
-      left: 3.6667px;
-      top: 3.6667px;
-    }
-
-    .title {
-      position: absolute;
-      left: 23px;
-      top: 359.3331px;
-      width: 314px;
-      margin: 0;
-      color: var(--accent);
-      font-size: 16.6667px;
-      line-height: normal;
-      font-weight: 700;
-    }
-
-    .note {
-      position: absolute;
-      left: 23px;
-      top: 379.6665px;
-      width: 314px;
-      margin: 0;
-      color: var(--text);
-      font-size: 13.3333px;
-      line-height: normal;
-      font-weight: 500;
-    }
-
-    .price-current {
-      position: absolute;
-      left: 23px;
-      top: 422.6665px;
-      margin: 0;
-      color: var(--accent);
-      font-size: 16.6667px;
-      line-height: normal;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .price-old {
-      position: absolute;
-      left: 160.3333px;
-      top: 424.6664px;
-      margin: 0;
-      color: var(--text-soft);
-      font-size: 13.3333px;
-      line-height: normal;
-      font-weight: 500;
-      text-decoration: line-through;
-      text-decoration-thickness: 1px;
-      text-decoration-skip-ink: none;
-      white-space: nowrap;
-    }
-
-    .paid {
-      position: absolute;
-      left: 23px;
-      top: 441.6665px;
-      width: 261px;
-      margin: 0;
-      color: var(--text);
-      font-size: 13.3333px;
-      line-height: normal;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .pay-button {
-      position: absolute;
-      left: 23px;
-      top: 472.3333px;
-      width: 314px;
-      height: 47.6667px;
-      border: 0;
-      border-radius: 16.6667px;
-      background: var(--accent);
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 16.6667px;
-      line-height: normal;
-      font-weight: 700;
-      cursor: default;
-    }
-
-    .offer {
-      position: absolute;
-      left: 67px;
-      top: 528.3333px;
-      width: 229px;
-      margin: 0;
-      color: var(--text);
-      font-size: 10px;
-      line-height: normal;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .offer strong {
-      color: var(--accent);
-      font-weight: 700;
-      text-decoration: underline;
-      text-decoration-thickness: 1px;
-    }
-
-    .status-card {
-      position: absolute;
-      left: 23px;
-      top: 551.6664px;
-      width: 314px;
-      height: 583px;
-      border-radius: 16.6667px;
-      background: var(--surface);
-      z-index: 1;
-      overflow: hidden;
-    }
-
-    .status-heading {
-      position: absolute;
-      left: 75.3334px;
-      top: 15.3334px;
-      display: flex;
-      align-items: center;
-      gap: 2.3333px;
-      margin: 0;
-      white-space: nowrap;
-      z-index: 4;
-    }
-
-    .status-heading span,
-    .status-heading strong {
-      font-size: 13.3333px;
-      line-height: normal;
-    }
-
-    .status-heading span {
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    .status-heading strong {
-      color: var(--accent);
-      font-weight: 700;
-    }
-
-    .status-graphic {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-    }
-
-    .status-copy {
-      position: absolute;
-      left: 68.3333px;
-      width: 192.6667px;
-      z-index: 4;
-    }
-
-    .step-title {
-      margin: 0;
-      font-size: 13.3333px;
-      line-height: 16px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .step-text {
-      margin: 1px 0 0;
-      font-size: 13.3333px;
-      line-height: 16px;
-      font-weight: 600;
-      white-space: normal;
-    }
-
-    .done-text {
-      color: var(--accent);
-    }
-
-    .current-text {
-      color: var(--accent);
-    }
-
-    .pending-title {
-      color: var(--accent-soft);
-    }
-
-    .current-body,
-    .done-body {
-      color: var(--text-dark);
-    }
-
-    .pending-body {
-      color: var(--text-muted);
-    }
-
-    @media (max-width: 359px) {
-      .app {
-        width: 100%;
-      }
-
-      .screen {
-        transform: scale(calc(100vw / 360));
-        transform-origin: top left;
-        height: calc(1161.3334px * (100vw / 360));
-      }
-    }
-  </style>
 </head>
 <body>
   <main class="app">
     <section class="screen">
-      <header class="hero"></header>
+      <header class="hero" aria-hidden="true"></header>
 
-      <div class="photo-card"></div>
-      <img class="product-photo" src="https://www.figma.com/api/mcp/asset/568374e3-fd52-47e6-a60e-ef5c14fd05f0" alt="Фото товара">
-      <p class="photo-caption">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</p>
+      <section class="product-card" aria-label="Карточка заказа">
+        <div class="photo-card"></div>
+        <img
+          class="product-photo"
+          src="https://www.figma.com/api/mcp/asset/568374e3-fd52-47e6-a60e-ef5c14fd05f0"
+          alt="Фото товара"
+        >
+        <p class="photo-caption">ФОТО ВРЕМЕННО ОТСУТСТВУЕТ</p>
 
-      <div class="order-id">
-        <span>Номер заказа: <strong>#4</strong></span>
-        <span class="copy-stack" aria-hidden="true"></span>
-      </div>
+        <div class="order-id">
+          <span>Номер заказа: <strong>#4</strong></span>
+          <span class="copy-stack" aria-hidden="true"></span>
+        </div>
 
-      <h1 class="title">Кровать для мамы 160х200</h1>
-      <p class="note">Примечание: Тут всякая инфа типо конфигурация или иные изменения</p>
+        <h1 class="title">Кровать для мамы 160х200</h1>
+        <p class="note">Примечание: Тут всякая инфа типо конфигурация или иные изменения</p>
 
-      <p class="price-current">Цена: 48.400 ₽</p>
-      <p class="price-old">58.900 ₽</p>
-      <p class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</p>
+        <p class="price-current">Цена: 48.400 ₽</p>
+        <p class="price-old">58.900 ₽</p>
+        <p class="paid">Оплачено: 50% (24.200 ₽ из 48.400 ₽)</p>
 
-      <button class="pay-button" type="button">Оплатить</button>
-      <p class="offer">Оплата подтверждает согласие с <strong>офертой.</strong></p>
+        <button class="pay-button" type="button">Оплатить</button>
+        <p class="offer">Оплата подтверждает согласие с <strong>офертой.</strong></p>
+      </section>
 
-      <div class="status-card"></div>
-      <div class="status-card">
-        <p class="status-heading"><span>Статус:</span><strong>В очереди (3/8)</strong></p>
+      <section class="status-card" aria-label="Статус заказа">
+        <p class="status-heading">
+          <span>Статус:</span>
+          <strong>В очереди (3/8)</strong>
+        </p>
 
         <svg class="status-graphic" viewBox="0 0 314 583" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <rect x="0" y="0" width="314" height="583" rx="16.6667" fill="#EFEFEF"/>
@@ -406,75 +74,48 @@
           <path d="M34 179.5L39.5 185L48 174.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
 
-        <div class="status-copy" style="top:51.3334px;">
-          <p class="step-title done-text">Заказ создан.</p>
+        <div class="status-copy status-copy-1">
+          <p class="step-title step-title-done">Заказ создан.</p>
         </div>
 
-        <div class="status-copy" style="top:108.0003px;">
-          <p class="step-title done-text">Ожидает подтверждения.</p>
-          <p class="step-text done-body">Проверьте детали, оферту и сумму к оплате.</p>
+        <div class="status-copy status-copy-2">
+          <p class="step-title step-title-done">Ожидает подтверждения.</p>
+          <p class="step-text step-text-done">Проверьте детали, оферту и сумму к оплате.</p>
         </div>
 
-        <div class="status-copy" style="top:171.3336px;">
-          <p class="step-title current-text">В очереди.</p>
-          <p class="step-text current-body">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
+        <div class="status-copy status-copy-3">
+          <p class="step-title step-title-current">В очереди.</p>
+          <p class="step-text step-text-current">Заказ подтверждён и поставлен в работу, скоро приступим к выполнению.</p>
         </div>
 
-        <div class="status-copy" style="top:250.9999px;">
-          <p class="step-title pending-title">В работе.</p>
-          <p class="step-text pending-body">Мы работаем над вашим заказом.</p>
+        <div class="status-copy status-copy-4">
+          <p class="step-title step-title-pending">В работе.</p>
+          <p class="step-text step-text-pending">Мы работаем над вашим заказом.</p>
         </div>
 
-        <div class="status-copy" style="top:307.9999px;">
-          <p class="step-title pending-title">На согласовании.</p>
-          <p class="step-text pending-body">Проверьте результат и подтвердите, что всё устраивает.</p>
+        <div class="status-copy status-copy-5">
+          <p class="step-title step-title-pending">На согласовании.</p>
+          <p class="step-text step-text-pending">Проверьте результат и подтвердите, что всё устраивает.</p>
         </div>
 
-        <div class="status-copy" style="top:394.0003px;">
-          <p class="step-title pending-title">Готов к выдаче / отправке.</p>
-          <p class="step-text pending-body">Заказ упакован и ожидает.</p>
+        <div class="status-copy status-copy-6">
+          <p class="step-title step-title-pending">Готов к выдаче / отправке.</p>
+          <p class="step-text step-text-pending">Заказ упакован и ожидает.</p>
         </div>
 
-        <div class="status-copy" style="top:452.0003px;">
-          <p class="step-title pending-title">В пути.</p>
-          <p class="step-text pending-body">Заказ в пути.</p>
+        <div class="status-copy status-copy-7">
+          <p class="step-title step-title-pending">В пути.</p>
+          <p class="step-text step-text-pending">Заказ в пути.</p>
         </div>
 
-        <div class="status-copy" style="top:508.6666px;">
-          <p class="step-title pending-title">Завершённый заказ.</p>
-          <p class="step-text pending-body">Заказ завершён. Спасибо за покупку!</p>
+        <div class="status-copy status-copy-8">
+          <p class="step-title step-title-pending">Завершённый заказ.</p>
+          <p class="step-text step-text-pending">Заказ завершён. Спасибо за покупку!</p>
         </div>
-      </div>
+      </section>
     </section>
   </main>
 
-  <script>
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-    const maxApp = window.WebApp || null;
-    const vkBridge = window.vkBridge || null;
-
-    if (tg) {
-      try {
-        tg.ready();
-        tg.expand();
-      } catch (error) {
-        console.error("Telegram bridge init failed", error);
-      }
-    }
-
-    if (maxApp && typeof maxApp.ready === "function") {
-      try {
-        maxApp.ready();
-      } catch (error) {
-        console.error("MAX bridge init failed", error);
-      }
-    }
-
-    if (vkBridge && typeof vkBridge.send === "function") {
-      vkBridge.send("VKWebAppInit").catch((error) => {
-        console.error("VK bridge init failed", error);
-      });
-    }
-  </script>
+  <script src="./app.js"></script>
 </body>
 </html>
