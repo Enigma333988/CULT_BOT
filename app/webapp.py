@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import hashlib
+import hmac
+import os
 from html import escape as html_escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 from typing import Callable
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
 
 
 OrderProvider = Callable[[str], dict[str, object] | None]
@@ -29,6 +32,88 @@ def build_mini_app_html(title: str, asset_version: str = "") -> str:
     html = html.replace('href="./styles.css"', f'href="./styles.css{version_suffix}"')
     html = html.replace('src="./app.js"', f'src="./app.js{version_suffix}"')
     return html
+
+
+def _extract_viewer_context(query: str) -> dict[str, str]:
+    query_params = parse_qs(query, keep_blank_values=False)
+
+    def first_value(*keys: str) -> str:
+        for key in keys:
+            values = query_params.get(key)
+            if values:
+                value = values[0].strip()
+                if value:
+                    return value
+        return ""
+
+    return {
+        "platform": first_value("viewer_platform", "platform"),
+        "chat_id": first_value("viewer_chat_id", "chat_id", "viewer_id", "user_id"),
+        "telegram_init_data": first_value("tg_init_data", "telegram_init_data", "init_data"),
+    }
+
+
+def _extract_telegram_chat_id(telegram_init_data: str) -> str | None:
+    telegram_token = (os.getenv("TOKEN") or "").strip()
+    raw_init_data = str(telegram_init_data or "").strip()
+    if not telegram_token or not raw_init_data:
+        return None
+
+    pairs = parse_qsl(raw_init_data, keep_blank_values=True)
+    if not pairs:
+        return None
+
+    payload = {key: value for key, value in pairs}
+    provided_hash = str(payload.pop("hash", "")).strip().lower()
+    if not provided_hash:
+        return None
+
+    check_string = "\n".join(f"{key}={value}" for key, value in sorted(payload.items()))
+    secret = hmac.new(b"WebAppData", telegram_token.encode("utf-8"), hashlib.sha256).digest()
+    expected_hash = hmac.new(secret, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(provided_hash, expected_hash):
+        return None
+
+    try:
+        user_payload = json.loads(payload.get("user", "{}"))
+    except (TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(user_payload, dict):
+        return None
+
+    user_id = user_payload.get("id")
+    if user_id is None:
+        return None
+    return str(user_id).strip() or None
+
+
+def _is_order_access_allowed(token: str, viewer: dict[str, str]) -> bool:
+    platform = str(viewer.get("platform") or "").strip().lower()
+    chat_id = str(viewer.get("chat_id") or "").strip()
+    if not platform:
+        return False
+
+    if platform == "telegram":
+        verified_chat_id = _extract_telegram_chat_id(viewer.get("telegram_init_data", ""))
+        if not verified_chat_id:
+            return False
+        if chat_id and chat_id != verified_chat_id:
+            return False
+        chat_id = verified_chat_id
+    if not chat_id:
+        return False
+
+    try:
+        from . import legacy
+    except Exception:
+        return False
+
+    order = legacy.find_order_by_token(token)
+    if order is None:
+        return False
+    if str(order.get("lifecycle_state") or "").strip().lower() == "deleted":
+        return False
+    return legacy.find_binding(order, platform, chat_id) is not None
 
 
 class MiniAppServer:
@@ -153,6 +238,15 @@ class MiniAppServer:
                         self._write_json(
                             HTTPStatus.NOT_IMPLEMENTED,
                             {"ok": False, "error": "order provider is not configured"},
+                            cors=True,
+                        )
+                        return
+
+                    viewer = _extract_viewer_context(parsed.query)
+                    if not _is_order_access_allowed(token, viewer):
+                        self._write_json(
+                            HTTPStatus.NOT_FOUND,
+                            {"ok": False, "error": "order not found"},
                             cors=True,
                         )
                         return
