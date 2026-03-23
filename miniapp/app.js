@@ -203,6 +203,45 @@ function parseOrderToken() {
   return "";
 }
 
+function parseViewerContext() {
+  const context = {
+    platform: "",
+    chatId: "",
+    telegramInitData: "",
+  };
+
+  const params = new URLSearchParams(window.location.search || "");
+  const queryPlatform = (params.get("viewer_platform") || params.get("platform") || "").trim().toLowerCase();
+  const queryChatId = (
+    params.get("viewer_chat_id") ||
+    params.get("chat_id") ||
+    params.get("viewer_id") ||
+    params.get("user_id") ||
+    ""
+  ).trim();
+
+  if (queryPlatform) {
+    context.platform = queryPlatform;
+  }
+  if (queryChatId) {
+    context.chatId = queryChatId;
+  }
+
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if (tg) {
+    context.platform = "telegram";
+    if (typeof tg.initData === "string" && tg.initData.trim()) {
+      context.telegramInitData = tg.initData.trim();
+    }
+    const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+    if (userId !== null && userId !== undefined && String(userId).trim()) {
+      context.chatId = String(userId).trim();
+    }
+  }
+
+  return context;
+}
+
 function formatRuble(value) {
   const safe = Number.isFinite(value) ? value : 0;
   return `${safe.toLocaleString("ru-RU")} ₽`;
@@ -285,9 +324,10 @@ function applyOrder(order) {
   const customerLabel = order.customer_status_label || order.status_label || "Статус";
   const customerStep = Number(order.customer_status_step || 1);
   const customerTotal = Number(order.customer_status_total_steps || 1);
+  const activityStatusLabel = order.status === "completed" ? "Неактивный" : "Активный";
   setTextNodeById(
     "html-text-node-a925aaf5-6d2c-53bc-909d-fad0c2f94262",
-    `${customerLabel} (${customerStep}/${customerTotal})`
+    `${customerLabel} (${customerStep}/${customerTotal}) • ${activityStatusLabel}`
   );
   setTextNodeById(
     "html-text-node-f4184536-902f-5cb3-99ce-6cb363c3d526",
@@ -331,5 +371,49 @@ async function loadOrderData() {
   }
 }
 
+async function loadOrderDataPersonal() {
+  const token = parseOrderToken();
+  if (!token) {
+    showOrderError("Order token is missing.");
+    return;
+  }
+
+  const viewer = parseViewerContext();
+  const viewerQuery = new URLSearchParams();
+  if (viewer.platform) {
+    viewerQuery.set("viewer_platform", viewer.platform);
+  }
+  if (viewer.chatId) {
+    viewerQuery.set("viewer_chat_id", viewer.chatId);
+  }
+  if (viewer.telegramInitData) {
+    viewerQuery.set("tg_init_data", viewer.telegramInitData);
+  }
+  const viewerQuerySuffix = viewerQuery.toString() ? `?${viewerQuery.toString()}` : "";
+
+  try {
+    const byPath = await fetch(`/api/order/${encodeURIComponent(token)}${viewerQuerySuffix}`, { method: "GET" });
+    let payload = null;
+    if (byPath.ok) {
+      payload = await byPath.json();
+    } else {
+      const byQueryParams = new URLSearchParams(viewerQuery);
+      byQueryParams.set("token", token);
+      const byQuery = await fetch(`/api/order?${byQueryParams.toString()}`, { method: "GET" });
+      payload = await byQuery.json();
+    }
+
+    if (!payload || !payload.ok || !payload.order) {
+      showOrderError("Order not found or unavailable.");
+      return;
+    }
+
+    applyOrder(payload.order);
+  } catch (error) {
+    console.error("Failed to load order", error);
+    showOrderError("Failed to load order.");
+  }
+}
+
 setupBridges();
-loadOrderData();
+loadOrderDataPersonal();
