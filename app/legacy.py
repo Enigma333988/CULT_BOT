@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import re
 import secrets
@@ -36,12 +36,12 @@ def resolve_runtime_file(env_name: str, default_filename: str) -> Path:
 
     if path.exists() and path.is_dir():
         raise ValueError(
-            f"❌ {env_name} должен указывать на JSON-файл, а не на папку: {path}"
+            f"вќЊ {env_name} РґРѕР»Р¶РµРЅ СѓРєР°Р·С‹РІР°С‚СЊ РЅР° JSON-С„Р°Р№Р», Р° РЅРµ РЅР° РїР°РїРєСѓ: {path}"
         )
 
     if path.name in {"", ".", ".."}:
         raise ValueError(
-            f"❌ {env_name} должен указывать на файл, например {default_filename}"
+            f"вќЊ {env_name} РґРѕР»Р¶РµРЅ СѓРєР°Р·С‹РІР°С‚СЊ РЅР° С„Р°Р№Р», РЅР°РїСЂРёРјРµСЂ {default_filename}"
         )
 
     return path
@@ -67,12 +67,12 @@ LOOP_INTERVAL_SECONDS = 2
 MAX_TITLE_LENGTH = 200
 MAX_PRICE_LENGTH = 60
 MAX_NOTES_LENGTH = 1000
-MENU_LABEL = "Меню"
+MENU_LABEL = "РњРµРЅСЋ"
 CONTACT_URL = "https://t.me/cultmebel?direct"
 VK_URL = "https://vk.com/cultmebel"
 TG_URL = "https://t.me/cultmebel"
 MINI_APP_TITLE = get_env_value("MINI_APP_TITLE", "CULT Mini App")
-MINI_APP_BUTTON_TEXT = get_env_value("MINI_APP_BUTTON_TEXT", "Открыть приложение")
+MINI_APP_BUTTON_TEXT = get_env_value("MINI_APP_BUTTON_TEXT", "РћС‚РєСЂС‹С‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ")
 MINI_APP_HOST = get_env_value("MINI_APP_HOST", "127.0.0.1")
 MINI_APP_PORT_RAW = get_env_value("MINI_APP_PORT", "8080")
 MINI_APP_PUBLIC_URL = get_env_value("MINI_APP_PUBLIC_URL")
@@ -85,15 +85,15 @@ PAYMENT_OPTIONS = {
 }
 
 STATUS_LABELS = {
-    "awaiting": "В ожидании",
-    "accepted": "Принято в работу",
-    "production": "Изготовление",
-    "painting": "Покраска",
-    "assembly": "Сборка",
-    "ready": "Заказ готов",
-    "awaiting_delivery": "Ожидание доставки",
-    "in_transit": "В пути",
-    "completed": "Завершён",
+    "awaiting": "Р’ РѕР¶РёРґР°РЅРёРё",
+    "accepted": "РџСЂРёРЅСЏС‚Рѕ РІ СЂР°Р±РѕС‚Сѓ",
+    "production": "РР·РіРѕС‚РѕРІР»РµРЅРёРµ",
+    "painting": "РџРѕРєСЂР°СЃРєР°",
+    "assembly": "РЎР±РѕСЂРєР°",
+    "ready": "Р—Р°РєР°Р· РіРѕС‚РѕРІ",
+    "awaiting_delivery": "РћР¶РёРґР°РЅРёРµ РґРѕСЃС‚Р°РІРєРё",
+    "in_transit": "Р’ РїСѓС‚Рё",
+    "completed": "Р—Р°РІРµСЂС€С‘РЅ",
 }
 BASE_STATUS_KEYS = [
     "awaiting",
@@ -105,18 +105,18 @@ BASE_STATUS_KEYS = [
 ]
 DELIVERY_EXTRA_STATUS_KEYS = ["awaiting_delivery", "in_transit"]
 RUSSIAN_MONTHS = {
-    "января": 1,
-    "февраля": 2,
-    "марта": 3,
-    "апреля": 4,
-    "мая": 5,
-    "июня": 6,
-    "июля": 7,
-    "августа": 8,
-    "сентября": 9,
-    "октября": 10,
-    "ноября": 11,
-    "декабря": 12,
+    "СЏРЅРІР°СЂСЏ": 1,
+    "С„РµРІСЂР°Р»СЏ": 2,
+    "РјР°СЂС‚Р°": 3,
+    "Р°РїСЂРµР»СЏ": 4,
+    "РјР°СЏ": 5,
+    "РёСЋРЅСЏ": 6,
+    "РёСЋР»СЏ": 7,
+    "Р°РІРіСѓСЃС‚Р°": 8,
+    "СЃРµРЅС‚СЏР±СЂСЏ": 9,
+    "РѕРєС‚СЏР±СЂСЏ": 10,
+    "РЅРѕСЏР±СЂСЏ": 11,
+    "РґРµРєР°Р±СЂСЏ": 12,
 }
 PLATFORM_LABELS = {
     "telegram": "Telegram",
@@ -125,13 +125,13 @@ PLATFORM_LABELS = {
 MAX_UPDATE_TYPES = ["message_created", "message_callback", "bot_started"]
 
 if not TELEGRAM_TOKEN and not MAX_TOKEN:
-    raise ValueError("❌ Укажи хотя бы один токен: TOKEN для Telegram или MAX_TOKEN для MAX.")
+    raise ValueError("вќЊ РЈРєР°Р¶Рё С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ С‚РѕРєРµРЅ: TOKEN РґР»СЏ Telegram РёР»Рё MAX_TOKEN РґР»СЏ MAX.")
 
 if TELEGRAM_TOKEN and not TELEGRAM_ADMIN_CHAT_ID:
-    raise ValueError("❌ Не найден ADMIN_CHAT_ID в .env")
+    raise ValueError("вќЊ РќРµ РЅР°Р№РґРµРЅ ADMIN_CHAT_ID РІ .env")
 
 if MAX_TOKEN and not MAX_ADMIN_CHAT_ID:
-    raise ValueError("❌ Не найден MAX_ADMIN_CHAT_ID в .env")
+    raise ValueError("вќЊ РќРµ РЅР°Р№РґРµРЅ MAX_ADMIN_CHAT_ID РІ .env")
 
 for proxy_name, proxy_value in (
     ("PROXY", PROXY),
@@ -143,30 +143,30 @@ for proxy_name, proxy_value in (
     parsed_proxy = urlparse(proxy_value)
     if parsed_proxy.scheme.lower() not in ALLOWED_PROXY_SCHEMES:
         raise ValueError(
-            f"❌ Некорректная схема {proxy_name}. Используй http://, https://, socks5:// или socks5h://"
+            f"вќЊ РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ СЃС…РµРјР° {proxy_name}. РСЃРїРѕР»СЊР·СѓР№ http://, https://, socks5:// РёР»Рё socks5h://"
         )
 
 try:
     MINI_APP_PORT = int(MINI_APP_PORT_RAW or "8080")
 except ValueError as exc:
-    raise ValueError("❌ MINI_APP_PORT должен быть целым числом.") from exc
+    raise ValueError("вќЊ MINI_APP_PORT РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С†РµР»С‹Рј С‡РёСЃР»РѕРј.") from exc
 
 if not 1 <= MINI_APP_PORT <= 65535:
-    raise ValueError("❌ MINI_APP_PORT должен быть в диапазоне 1..65535.")
+    raise ValueError("вќЊ MINI_APP_PORT РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РІ РґРёР°РїР°Р·РѕРЅРµ 1..65535.")
 
 if MINI_APP_PUBLIC_URL:
     parsed_mini_app_url = urlparse(MINI_APP_PUBLIC_URL)
     if parsed_mini_app_url.scheme.lower() != "https" or not parsed_mini_app_url.netloc:
-        raise ValueError("❌ MINI_APP_PUBLIC_URL должен быть корректным HTTPS URL.")
+        raise ValueError("вќЊ MINI_APP_PUBLIC_URL РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РєРѕСЂСЂРµРєС‚РЅС‹Рј HTTPS URL.")
 
 if TELEGRAM_MENU_BUTTON_MODE not in {"web_app", "commands"}:
-    raise ValueError("❌ TELEGRAM_MENU_BUTTON_MODE должен быть web_app или commands.")
+    raise ValueError("вќЊ TELEGRAM_MENU_BUTTON_MODE РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ web_app РёР»Рё commands.")
 
 try:
     LOCAL_TZ = ZoneInfo(TIMEZONE_NAME)
 except Exception as exc:
     raise ValueError(
-        "❌ Некорректная TIMEZONE. Используй IANA-имя, например Europe/Moscow или UTC"
+        "вќЊ РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ TIMEZONE. РСЃРїРѕР»СЊР·СѓР№ IANA-РёРјСЏ, РЅР°РїСЂРёРјРµСЂ Europe/Moscow РёР»Рё UTC"
     ) from exc
 
 thread_local = threading.local()
@@ -236,7 +236,7 @@ def get_timezone_label() -> str:
 
 def format_local_time(iso_timestamp: str | None) -> str:
     if not iso_timestamp:
-        return "—"
+        return "вЂ”"
     dt_utc = datetime.fromisoformat(iso_timestamp)
     dt_local = dt_utc.astimezone(LOCAL_TZ)
     return f"{dt_local.strftime('%Y-%m-%d %H:%M')} {get_timezone_label()}"
@@ -293,9 +293,9 @@ def load_json(path: Path, fallback: Any) -> Any:
     except (OSError, json.JSONDecodeError):
         backup_path = quarantine_corrupted_file(path)
         if backup_path is not None:
-            console_print(f"⚠️ Не удалось прочитать {path}. Создана резервная копия: {backup_path}")
+            console_print(f"вљ пёЏ РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ {path}. РЎРѕР·РґР°РЅР° СЂРµР·РµСЂРІРЅР°СЏ РєРѕРїРёСЏ: {backup_path}")
         else:
-            console_print(f"⚠️ Не удалось прочитать {path}. Использую резервное значение в памяти.")
+            console_print(f"вљ пёЏ РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ {path}. РСЃРїРѕР»СЊР·СѓСЋ СЂРµР·РµСЂРІРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РІ РїР°РјСЏС‚Рё.")
         return fallback
 
 
@@ -335,9 +335,9 @@ def save_catalog() -> None:
 def parse_rubles(raw_value: str | int) -> int:
     if isinstance(raw_value, int):
         return max(raw_value, 0)
-    cleaned = re.sub(r"(руб\.?|р\.?|₽|\s|[.,])", "", str(raw_value).lower())
+    cleaned = re.sub(r"(СЂСѓР±\.?|СЂ\.?|в‚Ѕ|\s|[.,])", "", str(raw_value).lower())
     if not cleaned.isdigit():
-        raise ValueError("Укажи сумму в рублях числом, например 21000.")
+        raise ValueError("РЈРєР°Р¶Рё СЃСѓРјРјСѓ РІ СЂСѓР±Р»СЏС… С‡РёСЃР»РѕРј, РЅР°РїСЂРёРјРµСЂ 21000.")
     return int(cleaned)
 
 
@@ -405,7 +405,7 @@ def migrate_order(order: dict[str, Any]) -> dict[str, Any]:
         raw_price = migrated.get("price", "0")
         total_price = safe_parse_rubles(raw_price, default=0)
     migrated["total_price"] = total_price
-    migrated["price"] = f"{total_price:,}".replace(",", ".") + " ₽"
+    migrated["price"] = f"{total_price:,}".replace(",", ".") + " в‚Ѕ"
 
     paid_amount = migrated.get("paid_amount")
     if paid_amount is None:
@@ -414,8 +414,8 @@ def migrate_order(order: dict[str, Any]) -> dict[str, Any]:
     migrated["paid_amount"] = max(0, min(safe_parse_rubles(paid_amount, default=0), total_price))
 
     migrated["title"] = str(
-        migrated.get("title") or migrated.get("caption") or f"Легаси заказ #{migrated.get('id', '?')}"
-    ).strip()[:MAX_TITLE_LENGTH] or f"Легаси заказ #{migrated.get('id', '?')}"
+        migrated.get("title") or migrated.get("caption") or f"Р›РµРіР°СЃРё Р·Р°РєР°Р· #{migrated.get('id', '?')}"
+    ).strip()[:MAX_TITLE_LENGTH] or f"Р›РµРіР°СЃРё Р·Р°РєР°Р· #{migrated.get('id', '?')}"
     migrated["status"] = migrated.get("status") if migrated.get("status") in STATUS_LABELS else "awaiting"
     migrated["has_delivery"] = bool(migrated.get("has_delivery", False))
     migrated["created_at"] = normalize_iso_timestamp(migrated.get("created_at"), default_to_now=True)
@@ -479,8 +479,8 @@ def migrate_catalog_item(item: dict[str, Any]) -> dict[str, Any]:
     migrated = dict(item)
     title = str(migrated.get("title") or migrated.get("name") or "").strip()
     if not title:
-        title = f"Товар #{migrated.get('id', '?')}"
-    migrated["title"] = title[:MAX_TITLE_LENGTH] or f"Товар #{migrated.get('id', '?')}"
+        title = f"РўРѕРІР°СЂ #{migrated.get('id', '?')}"
+    migrated["title"] = title[:MAX_TITLE_LENGTH] or f"РўРѕРІР°СЂ #{migrated.get('id', '?')}"
     migrated["total_price"] = safe_parse_rubles(migrated.get("total_price") or migrated.get("price"), default=0)
     migrated["created_at"] = normalize_iso_timestamp(migrated.get("created_at"), default_to_now=True)
     return migrated
@@ -579,7 +579,7 @@ def split_env_ids(raw_value: str | None) -> set[str]:
 
 def telegram_api_request(method: str, *, data: dict[str, Any] | None = None) -> dict[str, Any]:
     if not TELEGRAM_API_BASE_URL:
-        raise RuntimeError("Telegram не настроен")
+        raise RuntimeError("Telegram РЅРµ РЅР°СЃС‚СЂРѕРµРЅ")
     response = get_http_session("telegram").post(
         f"{TELEGRAM_API_BASE_URL}/{method}",
         data=data or {},
@@ -589,7 +589,7 @@ def telegram_api_request(method: str, *, data: dict[str, Any] | None = None) -> 
     response.raise_for_status()
     payload = response.json()
     if not payload.get("ok"):
-        description = payload.get("description", "Неизвестная ошибка Telegram API")
+        description = payload.get("description", "РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР° Telegram API")
         raise RuntimeError(f"Telegram API error in {method}: {description}")
     return payload
 
@@ -625,6 +625,21 @@ def build_telegram_mini_app_inline_keyboard() -> dict[str, Any] | None:
     return {"inline_keyboard": [[button]]}
 
 
+def build_order_mini_app_button(platform: str, order_token: str) -> dict[str, Any] | None:
+    public_url = get_mini_app_public_url()
+    if not public_url:
+        return None
+
+    parsed = urlparse(public_url)
+    query_items = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k != "order_token"]
+    query_items.append(("order_token", order_token))
+    order_url = urlunparse(parsed._replace(query=urlencode(query_items)))
+
+    if platform == "telegram":
+        return {"text": MINI_APP_BUTTON_TEXT, "web_app": {"url": order_url}}
+    return {"text": MINI_APP_BUTTON_TEXT, "url": order_url}
+
+
 def register_telegram_mini_app_menu_button() -> None:
     if not platform_enabled("telegram"):
         return
@@ -656,20 +671,20 @@ def register_telegram_commands() -> None:
         return
 
     public_commands = [
-        {"command": "start", "description": "Открыть меню"},
-        {"command": "miniapp", "description": "Открыть приложение"},
+        {"command": "start", "description": "РћС‚РєСЂС‹С‚СЊ РјРµРЅСЋ"},
+        {"command": "miniapp", "description": "РћС‚РєСЂС‹С‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ"},
     ]
     telegram_api_request("setMyCommands", data={"commands": json_dumps(public_commands)})
 
     if TELEGRAM_ADMIN_CHAT_ID:
         admin_commands = [
-            {"command": "start", "description": "Открыть меню"},
-            {"command": "neworder", "description": "Создать заказ"},
-            {"command": "orders", "description": "Список заказов"},
-            {"command": "catalog", "description": "Каталог товаров"},
-            {"command": "report", "description": "Отчёт за период"},
-            {"command": "cancel", "description": "Отменить действие"},
-            {"command": "miniapp", "description": "Открыть приложение"},
+            {"command": "start", "description": "РћС‚РєСЂС‹С‚СЊ РјРµРЅСЋ"},
+            {"command": "neworder", "description": "РЎРѕР·РґР°С‚СЊ Р·Р°РєР°Р·"},
+            {"command": "orders", "description": "РЎРїРёСЃРѕРє Р·Р°РєР°Р·РѕРІ"},
+            {"command": "catalog", "description": "РљР°С‚Р°Р»РѕРі С‚РѕРІР°СЂРѕРІ"},
+            {"command": "report", "description": "РћС‚С‡С‘С‚ Р·Р° РїРµСЂРёРѕРґ"},
+            {"command": "cancel", "description": "РћС‚РјРµРЅРёС‚СЊ РґРµР№СЃС‚РІРёРµ"},
+            {"command": "miniapp", "description": "РћС‚РєСЂС‹С‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ"},
         ]
         telegram_api_request(
             "setMyCommands",
@@ -688,7 +703,7 @@ def max_api_request(
     json_body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not MAX_API_BASE_URL or not MAX_TOKEN:
-        raise RuntimeError("MAX не настроен")
+        raise RuntimeError("MAX РЅРµ РЅР°СЃС‚СЂРѕРµРЅ")
     response = get_http_session("max").request(
         method,
         f"{MAX_API_BASE_URL}{path}",
@@ -785,9 +800,9 @@ def send_message(
                 raise
         if last_http_error is not None:
             raise last_http_error
-        raise RuntimeError("Не удалось определить получателя для MAX.")
+        raise RuntimeError("РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РїРѕР»СѓС‡Р°С‚РµР»СЏ РґР»СЏ MAX.")
 
-    raise ValueError(f"Неизвестная платформа: {platform}")
+    raise ValueError(f"РќРµРёР·РІРµСЃС‚РЅР°СЏ РїР»Р°С‚С„РѕСЂРјР°: {platform}")
 
 
 
@@ -823,7 +838,7 @@ def edit_message(
             body["format"] = parse_mode.lower()
         return max_api_request("PUT", "/messages", params={"message_id": message_id}, json_body=body)
 
-    raise ValueError(f"Неизвестная платформа: {platform}")
+    raise ValueError(f"РќРµРёР·РІРµСЃС‚РЅР°СЏ РїР»Р°С‚С„РѕСЂРјР°: {platform}")
 
 
 
@@ -842,7 +857,7 @@ def delete_message(platform: str, chat_id: str, message_id: str) -> None:
         max_api_request("DELETE", "/messages", params={"message_id": message_id})
         return
 
-    raise ValueError(f"Неизвестная платформа: {platform}")
+    raise ValueError(f"РќРµРёР·РІРµСЃС‚РЅР°СЏ РїР»Р°С‚С„РѕСЂРјР°: {platform}")
 
 
 
@@ -874,7 +889,7 @@ def answer_callback_query(
         max_api_request("POST", "/answers", params={"callback_id": callback_query_id}, json_body=body)
         return
 
-    raise ValueError(f"Неизвестная платформа: {platform}")
+    raise ValueError(f"РќРµРёР·РІРµСЃС‚РЅР°СЏ РїР»Р°С‚С„РѕСЂРјР°: {platform}")
 
 
 
@@ -1066,27 +1081,27 @@ def get_status_label(status_key: str) -> str:
 
 
 CUSTOMER_STATUS_LABELS = {
-    "awaiting": "В очереди",
-    "accepted": "В работе",
-    "production": "В работе",
-    "painting": "В работе",
-    "assembly": "На согласовании",
-    "ready": "Готов к выдаче / отправке",
-    "awaiting_delivery": "Готов к выдаче / отправке",
-    "in_transit": "В пути",
-    "completed": "Завершённый заказ",
+    "awaiting": "Р’ РѕС‡РµСЂРµРґРё",
+    "accepted": "Р’ СЂР°Р±РѕС‚Рµ",
+    "production": "Р’ СЂР°Р±РѕС‚Рµ",
+    "painting": "Р’ СЂР°Р±РѕС‚Рµ",
+    "assembly": "РќР° СЃРѕРіР»Р°СЃРѕРІР°РЅРёРё",
+    "ready": "Р“РѕС‚РѕРІ Рє РІС‹РґР°С‡Рµ / РѕС‚РїСЂР°РІРєРµ",
+    "awaiting_delivery": "Р“РѕС‚РѕРІ Рє РІС‹РґР°С‡Рµ / РѕС‚РїСЂР°РІРєРµ",
+    "in_transit": "Р’ РїСѓС‚Рё",
+    "completed": "Р—Р°РІРµСЂС€С‘РЅРЅС‹Р№ Р·Р°РєР°Р·",
 }
 
 CUSTOMER_STATUS_DESCRIPTIONS = {
-    "awaiting": "Заказ создан и ожидает подтверждения.",
-    "accepted": "Заказ подтвержден и поставлен в работу.",
-    "production": "Изготовление уже началось.",
-    "painting": "Идет этап покраски.",
-    "assembly": "Сборка завершится после вашего согласования.",
-    "ready": "Заказ готов к выдаче или отправке.",
-    "awaiting_delivery": "Заказ готов к выдаче или отправке.",
-    "in_transit": "Заказ в пути.",
-    "completed": "Заказ завершен. Спасибо за покупку!",
+    "awaiting": "Р—Р°РєР°Р· СЃРѕР·РґР°РЅ Рё РѕР¶РёРґР°РµС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ.",
+    "accepted": "Р—Р°РєР°Р· РїРѕРґС‚РІРµСЂР¶РґРµРЅ Рё РїРѕСЃС‚Р°РІР»РµРЅ РІ СЂР°Р±РѕС‚Сѓ.",
+    "production": "РР·РіРѕС‚РѕРІР»РµРЅРёРµ СѓР¶Рµ РЅР°С‡Р°Р»РѕСЃСЊ.",
+    "painting": "РРґРµС‚ СЌС‚Р°Рї РїРѕРєСЂР°СЃРєРё.",
+    "assembly": "РЎР±РѕСЂРєР° Р·Р°РІРµСЂС€РёС‚СЃСЏ РїРѕСЃР»Рµ РІР°С€РµРіРѕ СЃРѕРіР»Р°СЃРѕРІР°РЅРёСЏ.",
+    "ready": "Р—Р°РєР°Р· РіРѕС‚РѕРІ Рє РІС‹РґР°С‡Рµ РёР»Рё РѕС‚РїСЂР°РІРєРµ.",
+    "awaiting_delivery": "Р—Р°РєР°Р· РіРѕС‚РѕРІ Рє РІС‹РґР°С‡Рµ РёР»Рё РѕС‚РїСЂР°РІРєРµ.",
+    "in_transit": "Р—Р°РєР°Р· РІ РїСѓС‚Рё.",
+    "completed": "Р—Р°РєР°Р· Р·Р°РІРµСЂС€РµРЅ. РЎРїР°СЃРёР±Рѕ Р·Р° РїРѕРєСѓРїРєСѓ!",
 }
 
 
@@ -1100,14 +1115,14 @@ def get_customer_status_description(status_key: str) -> str:
 
 def build_customer_status_timeline(has_delivery: bool) -> list[dict[str, Any]]:
     steps = [
-        {"key": "awaiting", "label": "В очереди"},
-        {"key": "accepted", "label": "В работе"},
-        {"key": "assembly", "label": "На согласовании"},
-        {"key": "ready", "label": "Готов к выдаче / отправке"},
+        {"key": "awaiting", "label": "Р’ РѕС‡РµСЂРµРґРё"},
+        {"key": "accepted", "label": "Р’ СЂР°Р±РѕС‚Рµ"},
+        {"key": "assembly", "label": "РќР° СЃРѕРіР»Р°СЃРѕРІР°РЅРёРё"},
+        {"key": "ready", "label": "Р“РѕС‚РѕРІ Рє РІС‹РґР°С‡Рµ / РѕС‚РїСЂР°РІРєРµ"},
     ]
     if has_delivery:
-        steps.append({"key": "in_transit", "label": "В пути"})
-    steps.append({"key": "completed", "label": "Завершённый заказ"})
+        steps.append({"key": "in_transit", "label": "Р’ РїСѓС‚Рё"})
+    steps.append({"key": "completed", "label": "Р—Р°РІРµСЂС€С‘РЅРЅС‹Р№ Р·Р°РєР°Р·"})
     return steps
 
 
@@ -1125,7 +1140,7 @@ def get_customer_status_step(order: dict[str, Any]) -> tuple[int, int]:
 
 
 def format_price(value: int) -> str:
-    return f"{value:,}".replace(",", ".") + " ₽"
+    return f"{value:,}".replace(",", ".") + " в‚Ѕ"
 
 
 
@@ -1138,7 +1153,7 @@ def calculate_payment_percent(order: dict[str, Any]) -> int:
 def get_paid_text(order: dict[str, Any]) -> str:
     return (
         f"{calculate_payment_percent(order)}% "
-        f"({format_price(order['paid_amount'])} из {format_price(order['total_price'])})"
+        f"({format_price(order['paid_amount'])} РёР· {format_price(order['total_price'])})"
     )
 
 
@@ -1146,7 +1161,7 @@ def get_paid_text(order: dict[str, Any]) -> str:
 def format_order_link(platform: str, token: str) -> str:
     username = bot_profiles.get(platform, {}).get("username")
     if not username:
-        return f"Токен заказа: {token}"
+        return f"РўРѕРєРµРЅ Р·Р°РєР°Р·Р°: {token}"
     if platform == "telegram":
         return f"https://t.me/{username}?start=order_{token}"
     if platform == "max":
@@ -1201,20 +1216,20 @@ def build_customer_contact_links(order: dict[str, Any]) -> list[tuple[str, str]]
         if binding["platform"] == "telegram":
             normalized_chat_id = normalize_max_numeric_id(chat_id)
             if normalized_chat_id:
-                links.append(("Telegram клиент", f"tg://user?id={normalized_chat_id}"))
+                links.append(("Telegram РєР»РёРµРЅС‚", f"tg://user?id={normalized_chat_id}"))
         elif binding["platform"] == "max":
             dialog_link = get_max_dialog_link(chat_id)
             if dialog_link:
-                links.append(("MAX клиент", dialog_link))
+                links.append(("MAX РєР»РёРµРЅС‚", dialog_link))
     return links
 
 
 def build_client_share_text(order: dict[str, Any]) -> str:
     lines = [
-        "Вот ссылки, где можно проверить и отслеживать ваш заказ:",
+        "Р’РѕС‚ СЃСЃС‹Р»РєРё, РіРґРµ РјРѕР¶РЅРѕ РїСЂРѕРІРµСЂРёС‚СЊ Рё РѕС‚СЃР»РµР¶РёРІР°С‚СЊ РІР°С€ Р·Р°РєР°Р·:",
         build_order_links_text(order),
         "",
-        "Если что-то не открывается или нужно уточнение — просто напишите нам.",
+        "Р•СЃР»Рё С‡С‚Рѕ-С‚Рѕ РЅРµ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ РёР»Рё РЅСѓР¶РЅРѕ СѓС‚РѕС‡РЅРµРЅРёРµ вЂ” РїСЂРѕСЃС‚Рѕ РЅР°РїРёС€РёС‚Рµ РЅР°Рј.",
     ]
     return "\n".join(lines)
 
@@ -1222,15 +1237,15 @@ def build_client_share_text(order: dict[str, Any]) -> str:
 def render_client_share_html(order: dict[str, Any]) -> str:
     quick_links = build_customer_contact_links(order)
     lines = [
-        "✅ Заказ создан.",
+        "вњ… Р—Р°РєР°Р· СЃРѕР·РґР°РЅ.",
         "",
-        "Готовый текст для отправки клиенту:",
+        "Р“РѕС‚РѕРІС‹Р№ С‚РµРєСЃС‚ РґР»СЏ РѕС‚РїСЂР°РІРєРё РєР»РёРµРЅС‚Сѓ:",
         f"<pre>{html_escape(build_client_share_text(order))}</pre>",
     ]
     if quick_links:
-        quick_lines = ["Быстрый переход к клиенту:"]
+        quick_lines = ["Р‘С‹СЃС‚СЂС‹Р№ РїРµСЂРµС…РѕРґ Рє РєР»РёРµРЅС‚Сѓ:"]
         quick_lines.extend(
-            f'• <a href="{html_escape(url)}">{html_escape(label)}</a>'
+            f'вЂў <a href="{html_escape(url)}">{html_escape(label)}</a>'
             for label, url in quick_links
         )
         lines.extend(["", "\n".join(quick_lines)])
@@ -1238,14 +1253,14 @@ def render_client_share_html(order: dict[str, Any]) -> str:
 
 
 def build_cancel_keyboard() -> dict[str, Any]:
-    return {"inline_keyboard": [[{"text": "🛑 Отмена", "callback_data": "flow:cancel"}]]}
+    return {"inline_keyboard": [[{"text": "рџ›‘ РћС‚РјРµРЅР°", "callback_data": "flow:cancel"}]]}
 
 
 def build_prompt_keyboard() -> dict[str, Any]:
     return {
         "inline_keyboard": [
-            [{"text": "🛑 Отмена", "callback_data": "flow:cancel"}],
-            [{"text": "⬅️ В меню", "callback_data": "adminmenu:home"}],
+            [{"text": "рџ›‘ РћС‚РјРµРЅР°", "callback_data": "flow:cancel"}],
+            [{"text": "в¬…пёЏ Р’ РјРµРЅСЋ", "callback_data": "adminmenu:home"}],
         ]
     }
 
@@ -1256,7 +1271,7 @@ def build_order_links_text(order: dict[str, Any]) -> str:
     for platform in ("telegram", "max"):
         if platform_enabled(platform):
             lines.append(f"{get_platform_label(platform)}: {format_order_link(platform, order['token'])}")
-    return "\n".join(lines) if lines else f"Токен заказа: {order['token']}"
+    return "\n".join(lines) if lines else f"РўРѕРєРµРЅ Р·Р°РєР°Р·Р°: {order['token']}"
 
 
 
@@ -1322,7 +1337,7 @@ def serialize_order_for_mini_app(order: dict[str, Any]) -> dict[str, Any]:
         "customer_status_timeline": customer_timeline,
         "notes": order.get("notes") or "",
         "has_delivery": bool(order.get("has_delivery")),
-        "delivery_mode_label": "Доставка" if order.get("has_delivery") else "Самовывоз",
+        "delivery_mode_label": "Р”РѕСЃС‚Р°РІРєР°" if order.get("has_delivery") else "РЎР°РјРѕРІС‹РІРѕР·",
         "delivery_planned_for": order.get("delivery_planned_for"),
         "delivery_planned_for_label": order.get("delivery_planned_for") or "",
         "total_price": order["total_price"],
@@ -1373,16 +1388,16 @@ def append_history(order: dict[str, Any], text: str) -> None:
 
 def get_order_sources_text(order: dict[str, Any]) -> str:
     sources = [get_platform_label(item["platform"]) for item in get_order_bindings(order)]
-    return ", ".join(sources) if sources else "Пока ни в одном мессенджере"
+    return ", ".join(sources) if sources else "РџРѕРєР° РЅРё РІ РѕРґРЅРѕРј РјРµСЃСЃРµРЅРґР¶РµСЂРµ"
 
 
 
 def get_order_binding_details(order: dict[str, Any]) -> str:
     bindings = get_order_bindings(order)
     if not bindings:
-        return "—"
+        return "вЂ”"
     return "\n".join(
-        f"• {get_platform_label(item['platform'])}: {item['chat_id']}"
+        f"вЂў {get_platform_label(item['platform'])}: {item['chat_id']}"
         for item in bindings
     )
 
@@ -1392,28 +1407,28 @@ def write_order_archive(order: dict[str, Any], lifecycle_state: str) -> None:
     ensure_dir(ARCHIVE_DIR)
     history_lines = order.get("history", [])
     lines = [
-        f"Заказ #{order['id']}",
-        f"Состояние: {lifecycle_state}",
-        f"Наименование: {order['title']}",
-        f"Создан через: {get_platform_label(order.get('created_via', 'telegram'))}",
-        f"Каналы клиента: {get_order_sources_text(order)}",
-        f"Цена: {format_price(order['total_price'])}",
-        f"Оплачено: {get_paid_text(order)}",
-        f"Статус: {build_status_text(order)}",
-        f"Доставка: {'Да' if order['has_delivery'] else 'Нет'}",
-        f"Создан: {format_local_time(order['created_at'])}",
-        f"Обновлён: {format_local_time(order.get('updated_at'))}",
-        f"Завершён: {format_local_time(order.get('completed_at'))}",
-        f"План доставки: {order.get('delivery_planned_for') or '—'}",
-        f"Примечание: {order.get('notes') or '—'}",
+        f"Р—Р°РєР°Р· #{order['id']}",
+        f"РЎРѕСЃС‚РѕСЏРЅРёРµ: {lifecycle_state}",
+        f"РќР°РёРјРµРЅРѕРІР°РЅРёРµ: {order['title']}",
+        f"РЎРѕР·РґР°РЅ С‡РµСЂРµР·: {get_platform_label(order.get('created_via', 'telegram'))}",
+        f"РљР°РЅР°Р»С‹ РєР»РёРµРЅС‚Р°: {get_order_sources_text(order)}",
+        f"Р¦РµРЅР°: {format_price(order['total_price'])}",
+        f"РћРїР»Р°С‡РµРЅРѕ: {get_paid_text(order)}",
+        f"РЎС‚Р°С‚СѓСЃ: {build_status_text(order)}",
+        f"Р”РѕСЃС‚Р°РІРєР°: {'Р”Р°' if order['has_delivery'] else 'РќРµС‚'}",
+        f"РЎРѕР·РґР°РЅ: {format_local_time(order['created_at'])}",
+        f"РћР±РЅРѕРІР»С‘РЅ: {format_local_time(order.get('updated_at'))}",
+        f"Р—Р°РІРµСЂС€С‘РЅ: {format_local_time(order.get('completed_at'))}",
+        f"РџР»Р°РЅ РґРѕСЃС‚Р°РІРєРё: {order.get('delivery_planned_for') or 'вЂ”'}",
+        f"РџСЂРёРјРµС‡Р°РЅРёРµ: {order.get('notes') or 'вЂ”'}",
         "",
-        "История:",
+        "РСЃС‚РѕСЂРёСЏ:",
     ]
     if history_lines:
         for item in history_lines:
             lines.append(f"- {format_local_time(item['timestamp'])}: {item['text']}")
     else:
-        lines.append("- История пока пустая.")
+        lines.append("- РСЃС‚РѕСЂРёСЏ РїРѕРєР° РїСѓСЃС‚Р°СЏ.")
     lines.append("")
     lines.append("DATA_JSON:")
     lines.append(
@@ -1529,7 +1544,7 @@ def create_order(
         "history": [],
         "created_via": created_via if created_via in PLATFORM_LABELS else "telegram",
     }
-    append_history(order, f"Заказ создан через {get_platform_label(order['created_via'])}.")
+    append_history(order, f"Р—Р°РєР°Р· СЃРѕР·РґР°РЅ С‡РµСЂРµР· {get_platform_label(order['created_via'])}.")
     orders.append(order)
     persist_order(order)
     return order
@@ -1564,7 +1579,7 @@ def update_order_status(order: dict[str, Any], status_key: str) -> None:
     order["updated_at"] = now_utc_iso()
     if status_key != "awaiting_delivery":
         order["delivery_planned_for"] = None
-    append_history(order, f"Статус изменён на «{get_status_label(status_key)}».")
+    append_history(order, f"РЎС‚Р°С‚СѓСЃ РёР·РјРµРЅС‘РЅ РЅР° В«{get_status_label(status_key)}В».")
     persist_order(order, "completed" if order["status"] == "completed" else "active")
 
 
@@ -1573,7 +1588,7 @@ def set_delivery_schedule(order: dict[str, Any], schedule_text: str) -> None:
     order["status"] = "awaiting_delivery"
     order["delivery_planned_for"] = schedule_text.strip()
     order["updated_at"] = now_utc_iso()
-    append_history(order, f"Доставка запланирована на {order['delivery_planned_for']}.")
+    append_history(order, f"Р”РѕСЃС‚Р°РІРєР° Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅР° РЅР° {order['delivery_planned_for']}.")
     persist_order(order)
 
 
@@ -1584,7 +1599,7 @@ def update_delivery_flag(order: dict[str, Any], has_delivery: bool) -> None:
         order["status"] = "ready"
         order["delivery_planned_for"] = None
     order["updated_at"] = now_utc_iso()
-    append_history(order, f"Изменён способ получения: {'доставка' if has_delivery else 'самовывоз'}.")
+    append_history(order, f"РР·РјРµРЅС‘РЅ СЃРїРѕСЃРѕР± РїРѕР»СѓС‡РµРЅРёСЏ: {'РґРѕСЃС‚Р°РІРєР°' if has_delivery else 'СЃР°РјРѕРІС‹РІРѕР·'}.")
     persist_order(order)
 
 
@@ -1592,7 +1607,7 @@ def update_delivery_flag(order: dict[str, Any], has_delivery: bool) -> None:
 def add_payment(order: dict[str, Any], amount: int) -> None:
     order["paid_amount"] = min(order["total_price"], order["paid_amount"] + amount)
     order["updated_at"] = now_utc_iso()
-    append_history(order, f"Добавлена оплата {format_price(amount)}.")
+    append_history(order, f"Р”РѕР±Р°РІР»РµРЅР° РѕРїР»Р°С‚Р° {format_price(amount)}.")
     persist_order(order, "completed" if order["status"] == "completed" else "active")
 
 
@@ -1600,7 +1615,7 @@ def add_payment(order: dict[str, Any], amount: int) -> None:
 def mark_fully_paid(order: dict[str, Any]) -> None:
     order["paid_amount"] = order["total_price"]
     order["updated_at"] = now_utc_iso()
-    append_history(order, "Заказ отмечен как полностью оплаченный.")
+    append_history(order, "Р—Р°РєР°Р· РѕС‚РјРµС‡РµРЅ РєР°Рє РїРѕР»РЅРѕСЃС‚СЊСЋ РѕРїР»Р°С‡РµРЅРЅС‹Р№.")
     persist_order(order, "completed" if order["status"] == "completed" else "active")
 
 
@@ -1621,7 +1636,7 @@ def complete_order(order: dict[str, Any]) -> None:
     order["status"] = "completed"
     order["completed_at"] = now_utc_iso()
     order["updated_at"] = now_utc_iso()
-    append_history(order, "Заказ завершён.")
+    append_history(order, "Р—Р°РєР°Р· Р·Р°РІРµСЂС€С‘РЅ.")
     persist_order(order, "completed")
 
 
@@ -1629,13 +1644,16 @@ def complete_order(order: dict[str, Any]) -> None:
 def build_public_keyboard(platform: str, chat_id: str | None = None, include_refresh_token: str | None = None) -> dict[str, Any]:
     keyboard: list[list[dict[str, Any]]] = []
     if include_refresh_token:
-        keyboard.append([{"text": "Обновить статус", "callback_data": f"client:refresh:{include_refresh_token}"}])
+        order_mini_app_button = build_order_mini_app_button(platform, include_refresh_token)
+        if order_mini_app_button is not None:
+            keyboard.append([order_mini_app_button])
+        keyboard.append([{"text": "РћР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СѓСЃ", "callback_data": f"client:refresh:{include_refresh_token}"}])
     if chat_id and has_customer_orders(platform, chat_id):
-        keyboard.append([{"text": "Мои заказы", "callback_data": "client:list"}])
+        keyboard.append([{"text": "РњРѕРё Р·Р°РєР°Р·С‹", "callback_data": "client:list"}])
     keyboard.extend(
         [
-            [{"text": "Связаться", "url": CONTACT_URL}],
-            [{"text": "Соц.сети Культ Мебель", "callback_data": "public:socials"}],
+            [{"text": "РЎРІСЏР·Р°С‚СЊСЃСЏ", "url": CONTACT_URL}],
+            [{"text": "РЎРѕС†.СЃРµС‚Рё РљСѓР»СЊС‚ РњРµР±РµР»СЊ", "callback_data": "public:socials"}],
         ]
     )
     return {"inline_keyboard": keyboard}
@@ -1645,27 +1663,27 @@ def build_public_keyboard(platform: str, chat_id: str | None = None, include_ref
 def build_customer_orders_text(platform: str, chat_id: str) -> str:
     customer_orders = find_orders_for_customer(platform, chat_id)
     if not customer_orders:
-        return "У вас пока нет привязанных заказов. Откройте персональную ссылку, которую вам отправил менеджер."
+        return "РЈ РІР°СЃ РїРѕРєР° РЅРµС‚ РїСЂРёРІСЏР·Р°РЅРЅС‹С… Р·Р°РєР°Р·РѕРІ. РћС‚РєСЂРѕР№С‚Рµ РїРµСЂСЃРѕРЅР°Р»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ, РєРѕС‚РѕСЂСѓСЋ РІР°Рј РѕС‚РїСЂР°РІРёР» РјРµРЅРµРґР¶РµСЂ."
 
     total_sum = sum(order["total_price"] for order in customer_orders)
     total_paid = sum(order["paid_amount"] for order in customer_orders)
     lines = [
-        "📦 Ваши заказы:",
-        f"Всего заказов: {len(customer_orders)}",
-        f"Общая сумма: {format_price(total_sum)}",
-        f"Оплачено суммарно: {format_price(total_paid)}",
+        "рџ“¦ Р’Р°С€Рё Р·Р°РєР°Р·С‹:",
+        f"Р’СЃРµРіРѕ Р·Р°РєР°Р·РѕРІ: {len(customer_orders)}",
+        f"РћР±С‰Р°СЏ СЃСѓРјРјР°: {format_price(total_sum)}",
+        f"РћРїР»Р°С‡РµРЅРѕ СЃСѓРјРјР°СЂРЅРѕ: {format_price(total_paid)}",
     ]
     for order in customer_orders:
         lines.append(
             "\n".join(
                 [
-                    f"📦 Заказ #{order['id']}",
+                    f"рџ“¦ Р—Р°РєР°Р· #{order['id']}",
                     order["title"],
-                    f"Статус: {build_status_text(order)}",
-                    f"Цена: {format_price(order['total_price'])}",
-                    f"Оплачено: {get_paid_text(order)}",
-                    f"Создан: {format_local_time(order['created_at'])}",
-                    f"Открыт в: {get_order_sources_text(order)}",
+                    f"РЎС‚Р°С‚СѓСЃ: {build_status_text(order)}",
+                    f"Р¦РµРЅР°: {format_price(order['total_price'])}",
+                    f"РћРїР»Р°С‡РµРЅРѕ: {get_paid_text(order)}",
+                    f"РЎРѕР·РґР°РЅ: {format_local_time(order['created_at'])}",
+                    f"РћС‚РєСЂС‹С‚ РІ: {get_order_sources_text(order)}",
                 ]
             )
         )
@@ -1679,13 +1697,13 @@ def build_customer_orders_keyboard(platform: str, chat_id: str) -> dict[str, Any
         rows.append(
             [
                 {
-                    "text": f"Открыть #{order['id']} — {order['title'][:28]}",
+                    "text": f"РћС‚РєСЂС‹С‚СЊ #{order['id']} вЂ” {order['title'][:28]}",
                     "callback_data": f"client:view:{order['token']}",
                 }
             ]
         )
-    rows.append([{"text": "Связаться", "url": CONTACT_URL}])
-    rows.append([{"text": "Соц.сети Культ Мебель", "callback_data": "public:socials"}])
+    rows.append([{"text": "РЎРІСЏР·Р°С‚СЊСЃСЏ", "url": CONTACT_URL}])
+    rows.append([{"text": "РЎРѕС†.СЃРµС‚Рё РљСѓР»СЊС‚ РњРµР±РµР»СЊ", "callback_data": "public:socials"}])
     return {"inline_keyboard": rows}
 
 
@@ -1707,8 +1725,8 @@ def format_admin_order_text(order: dict[str, Any]) -> str:
     quick_links = build_customer_contact_links(order)
     if not quick_links:
         return base_text
-    lines = ["Быстрый переход к клиенту:"]
-    lines.extend(f"• {label}: {url}" for label, url in quick_links)
+    lines = ["Р‘С‹СЃС‚СЂС‹Р№ РїРµСЂРµС…РѕРґ Рє РєР»РёРµРЅС‚Сѓ:"]
+    lines.extend(f"вЂў {label}: {url}" for label, url in quick_links)
     return f"{base_text}\n\n" + "\n".join(lines)
 
 
@@ -1717,12 +1735,12 @@ def build_admin_home_keyboard() -> dict[str, Any]:
     return {
         "inline_keyboard": [
             [
-                {"text": "🆕 Новый заказ", "callback_data": "adminmenu:neworder"},
-                {"text": "🗂 Заказы", "callback_data": "admin:list"},
+                {"text": "рџ†• РќРѕРІС‹Р№ Р·Р°РєР°Р·", "callback_data": "adminmenu:neworder"},
+                {"text": "рџ—‚ Р—Р°РєР°Р·С‹", "callback_data": "admin:list"},
             ],
             [
-                {"text": "📚 Каталог", "callback_data": "catalog:list"},
-                {"text": "📊 Отчёт", "callback_data": "adminmenu:report"},
+                {"text": "рџ“љ РљР°С‚Р°Р»РѕРі", "callback_data": "catalog:list"},
+                {"text": "рџ“Љ РћС‚С‡С‘С‚", "callback_data": "adminmenu:report"},
             ],
         ]
     }
@@ -1732,13 +1750,13 @@ def build_admin_home_keyboard() -> dict[str, Any]:
 def build_catalog_list_text() -> str:
     if not catalog_items:
         return (
-            "📚 Каталог пока пуст.\n\n"
-            "Нажми «Добавить товар», затем отправь название и цену — после этого товар можно будет выбирать при создании заказа."
+            "рџ“љ РљР°С‚Р°Р»РѕРі РїРѕРєР° РїСѓСЃС‚.\n\n"
+            "РќР°Р¶РјРё В«Р”РѕР±Р°РІРёС‚СЊ С‚РѕРІР°СЂВ», Р·Р°С‚РµРј РѕС‚РїСЂР°РІСЊ РЅР°Р·РІР°РЅРёРµ Рё С†РµРЅСѓ вЂ” РїРѕСЃР»Рµ СЌС‚РѕРіРѕ С‚РѕРІР°СЂ РјРѕР¶РЅРѕ Р±СѓРґРµС‚ РІС‹Р±РёСЂР°С‚СЊ РїСЂРё СЃРѕР·РґР°РЅРёРё Р·Р°РєР°Р·Р°."
         )
 
-    lines = ["📚 Каталог товаров:"]
+    lines = ["рџ“љ РљР°С‚Р°Р»РѕРі С‚РѕРІР°СЂРѕРІ:"]
     for item in sorted(catalog_items, key=lambda value: value["id"]):
-        lines.append(f"#{item['id']} • {item['title']}\nЦена: {format_price(item['total_price'])}")
+        lines.append(f"#{item['id']} вЂў {item['title']}\nР¦РµРЅР°: {format_price(item['total_price'])}")
     return "\n\n".join(lines)
 
 
@@ -1749,13 +1767,13 @@ def build_catalog_list_keyboard() -> dict[str, Any]:
         rows.append(
             [
                 {
-                    "text": f"{item['title'][:28]} — {format_price(item['total_price'])}",
+                    "text": f"{item['title'][:28]} вЂ” {format_price(item['total_price'])}",
                     "callback_data": f"catalog:view:{item['id']}",
                 }
             ]
         )
-    rows.append([{"text": "➕ Добавить товар", "callback_data": "catalog:add"}])
-    rows.append([{"text": "⬅️ В меню", "callback_data": "adminmenu:home"}])
+    rows.append([{"text": "вћ• Р”РѕР±Р°РІРёС‚СЊ С‚РѕРІР°СЂ", "callback_data": "catalog:add"}])
+    rows.append([{"text": "в¬…пёЏ Р’ РјРµРЅСЋ", "callback_data": "adminmenu:home"}])
     return {"inline_keyboard": rows}
 
 
@@ -1763,8 +1781,8 @@ def build_catalog_list_keyboard() -> dict[str, Any]:
 def build_catalog_item_keyboard(item_id: int) -> dict[str, Any]:
     return {
         "inline_keyboard": [
-            [{"text": "🗑 Удалить товар", "callback_data": f"catalog:delete:{item_id}"}],
-            [{"text": "⬅️ К каталогу", "callback_data": "catalog:list"}],
+            [{"text": "рџ—‘ РЈРґР°Р»РёС‚СЊ С‚РѕРІР°СЂ", "callback_data": f"catalog:delete:{item_id}"}],
+            [{"text": "в¬…пёЏ Рљ РєР°С‚Р°Р»РѕРіСѓ", "callback_data": "catalog:list"}],
         ]
     }
 
@@ -1776,13 +1794,13 @@ def build_catalog_pick_keyboard() -> dict[str, Any]:
         rows.append(
             [
                 {
-                    "text": f"{item['title'][:24]} — {format_price(item['total_price'])}",
+                    "text": f"{item['title'][:24]} вЂ” {format_price(item['total_price'])}",
                     "callback_data": f"create:item:{item['id']}",
                 }
             ]
         )
-    rows.append([{"text": "📚 Каталог", "callback_data": "catalog:list"}])
-    rows.append([{"text": "⬅️ В меню", "callback_data": "adminmenu:home"}])
+    rows.append([{"text": "рџ“љ РљР°С‚Р°Р»РѕРі", "callback_data": "catalog:list"}])
+    rows.append([{"text": "в¬…пёЏ Р’ РјРµРЅСЋ", "callback_data": "adminmenu:home"}])
     return {"inline_keyboard": rows}
 
 
@@ -1804,8 +1822,8 @@ def build_delivery_choice_keyboard() -> dict[str, Any]:
     return {
         "inline_keyboard": [
             [
-                {"text": "Да", "callback_data": "create:delivery:yes"},
-                {"text": "Нет", "callback_data": "create:delivery:no"},
+                {"text": "Р”Р°", "callback_data": "create:delivery:yes"},
+                {"text": "РќРµС‚", "callback_data": "create:delivery:no"},
             ]
         ]
     }
@@ -1820,7 +1838,7 @@ def chunk_buttons(buttons: list[dict[str, Any]], chunk_size: int) -> list[list[d
 def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     status_buttons = [
         {
-            "text": f"{'✅ ' if order['status'] == status_key else ''}{get_status_label(status_key)}",
+            "text": f"{'вњ… ' if order['status'] == status_key else ''}{get_status_label(status_key)}",
             "callback_data": f"admin:status:{order['id']}:{status_key}",
         }
         for status_key in get_status_keys(order["has_delivery"])
@@ -1829,7 +1847,7 @@ def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     inline_keyboard.append(
         [
             {
-                "text": f"{'🚚' if order['has_delivery'] else '🛻'} {'Доставка' if order['has_delivery'] else 'Самовывоз'}",
+                "text": f"{'рџљљ' if order['has_delivery'] else 'рџ›»'} {'Р”РѕСЃС‚Р°РІРєР°' if order['has_delivery'] else 'РЎР°РјРѕРІС‹РІРѕР·'}",
                 "callback_data": f"admin:delivery_toggle:{order['id']}",
             }
         ]
@@ -1837,17 +1855,17 @@ def build_admin_order_keyboard(order: dict[str, Any]) -> dict[str, Any]:
     if order["paid_amount"] < order["total_price"]:
         inline_keyboard.append(
             [
-                {"text": "💯 Клиент оплатил всё", "callback_data": f"admin:payment_full:{order['id']}"},
-                {"text": "💵 Добавить оплату", "callback_data": f"admin:payment_add:{order['id']}"},
+                {"text": "рџ’Ї РљР»РёРµРЅС‚ РѕРїР»Р°С‚РёР» РІСЃС‘", "callback_data": f"admin:payment_full:{order['id']}"},
+                {"text": "рџ’µ Р”РѕР±Р°РІРёС‚СЊ РѕРїР»Р°С‚Сѓ", "callback_data": f"admin:payment_add:{order['id']}"},
             ]
         )
     inline_keyboard.append(
         [
-            {"text": "Завершить заказ", "callback_data": f"admin:finish:{order['id']}"},
-            {"text": "Удалить заказ", "callback_data": f"admin:delete:{order['id']}"},
+            {"text": "Р—Р°РІРµСЂС€РёС‚СЊ Р·Р°РєР°Р·", "callback_data": f"admin:finish:{order['id']}"},
+            {"text": "РЈРґР°Р»РёС‚СЊ Р·Р°РєР°Р·", "callback_data": f"admin:delete:{order['id']}"},
         ]
     )
-    inline_keyboard.append([{"text": "К списку заказов", "callback_data": "admin:list"}])
+    inline_keyboard.append([{"text": "Рљ СЃРїРёСЃРєСѓ Р·Р°РєР°Р·РѕРІ", "callback_data": "admin:list"}])
     return {"inline_keyboard": inline_keyboard}
 
 
@@ -1856,8 +1874,8 @@ def build_finish_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
         "inline_keyboard": [
             [
-                {"text": "Да, завершить", "callback_data": f"admin:finish_yes:{order_id}"},
-                {"text": "Нет", "callback_data": f"admin:finish_no:{order_id}"},
+                {"text": "Р”Р°, Р·Р°РІРµСЂС€РёС‚СЊ", "callback_data": f"admin:finish_yes:{order_id}"},
+                {"text": "РќРµС‚", "callback_data": f"admin:finish_no:{order_id}"},
             ]
         ]
     }
@@ -1868,8 +1886,8 @@ def build_delete_confirmation_keyboard(order_id: int) -> dict[str, Any]:
     return {
         "inline_keyboard": [
             [
-                {"text": "Да, удалить", "callback_data": f"admin:delete_yes:{order_id}"},
-                {"text": "Нет", "callback_data": f"admin:delete_no:{order_id}"},
+                {"text": "Р”Р°, СѓРґР°Р»РёС‚СЊ", "callback_data": f"admin:delete_yes:{order_id}"},
+                {"text": "РќРµС‚", "callback_data": f"admin:delete_no:{order_id}"},
             ]
         ]
     }
@@ -1887,20 +1905,20 @@ def build_active_orders() -> list[dict[str, Any]]:
 def build_orders_list_text() -> str:
     active_orders = build_active_orders()
     if not active_orders:
-        return "📭 Сейчас активных заказов нет. Используй /neworder, чтобы создать новый заказ."
+        return "рџ“­ РЎРµР№С‡Р°СЃ Р°РєС‚РёРІРЅС‹С… Р·Р°РєР°Р·РѕРІ РЅРµС‚. РСЃРїРѕР»СЊР·СѓР№ /neworder, С‡С‚РѕР±С‹ СЃРѕР·РґР°С‚СЊ РЅРѕРІС‹Р№ Р·Р°РєР°Р·."
 
-    lines = ["🗂 Текущие заказы:"]
+    lines = ["рџ—‚ РўРµРєСѓС‰РёРµ Р·Р°РєР°Р·С‹:"]
     for order in active_orders:
         lines.append(
             "\n".join(
                 [
-                    f"📦 Заказ #{order['id']}",
+                    f"рџ“¦ Р—Р°РєР°Р· #{order['id']}",
                     order["title"],
-                    f"Создан через: {get_platform_label(order.get('created_via', 'telegram'))}",
-                    f"Каналы клиента: {get_order_sources_text(order)}",
-                    f"Статус: {build_status_text(order)}",
-                    f"Оплачено: {get_paid_text(order)}",
-                    f"Создан: {format_local_time(order['created_at'])}",
+                    f"РЎРѕР·РґР°РЅ С‡РµСЂРµР·: {get_platform_label(order.get('created_via', 'telegram'))}",
+                    f"РљР°РЅР°Р»С‹ РєР»РёРµРЅС‚Р°: {get_order_sources_text(order)}",
+                    f"РЎС‚Р°С‚СѓСЃ: {build_status_text(order)}",
+                    f"РћРїР»Р°С‡РµРЅРѕ: {get_paid_text(order)}",
+                    f"РЎРѕР·РґР°РЅ: {format_local_time(order['created_at'])}",
                 ]
             )
         )
@@ -1911,19 +1929,19 @@ def build_orders_list_text() -> str:
 def build_orders_list_keyboard() -> dict[str, Any] | None:
     active_orders = build_active_orders()
     if not active_orders:
-        return {"inline_keyboard": [[{"text": "⬅️ В меню", "callback_data": "adminmenu:home"}]]}
+        return {"inline_keyboard": [[{"text": "в¬…пёЏ Р’ РјРµРЅСЋ", "callback_data": "adminmenu:home"}]]}
 
     rows: list[list[dict[str, Any]]] = []
     for order in active_orders:
         rows.append(
             [
                 {
-                    "text": f"Открыть #{order['id']} — {order['title'][:30]}",
+                    "text": f"РћС‚РєСЂС‹С‚СЊ #{order['id']} вЂ” {order['title'][:30]}",
                     "callback_data": f"admin:view:{order['id']}",
                 }
             ]
         )
-    rows.append([{"text": "⬅️ В меню", "callback_data": "adminmenu:home"}])
+    rows.append([{"text": "в¬…пёЏ Р’ РјРµРЅСЋ", "callback_data": "adminmenu:home"}])
     return {"inline_keyboard": rows}
 
 
@@ -1932,54 +1950,54 @@ def render_order_text(order: dict[str, Any], *, for_admin: bool) -> str:
     blocks = [
         "\n".join(
             [
-                f"📦 Заказ #{order['id']}",
+                f"рџ“¦ Р—Р°РєР°Р· #{order['id']}",
                 order["title"],
-                f"Статус: {build_status_text(order)}",
-                f"Примечание: {order.get('notes') or '—'}",
+                f"РЎС‚Р°С‚СѓСЃ: {build_status_text(order)}",
+                f"РџСЂРёРјРµС‡Р°РЅРёРµ: {order.get('notes') or 'вЂ”'}",
             ]
         ),
         "\n".join(
             [
-                f"Цена: {format_price(order['total_price'])}",
-                f"Оплачено: {get_paid_text(order)}",
+                f"Р¦РµРЅР°: {format_price(order['total_price'])}",
+                f"РћРїР»Р°С‡РµРЅРѕ: {get_paid_text(order)}",
             ]
         ),
         "\n".join(
             [
-                f"Доставка: {'Да' if order['has_delivery'] else 'Нет'}",
-                f"Создан: {format_local_time(order['created_at'])}",
-                f"Создан через: {get_platform_label(order.get('created_via', 'telegram'))}",
+                f"Р”РѕСЃС‚Р°РІРєР°: {'Р”Р°' if order['has_delivery'] else 'РќРµС‚'}",
+                f"РЎРѕР·РґР°РЅ: {format_local_time(order['created_at'])}",
+                f"РЎРѕР·РґР°РЅ С‡РµСЂРµР·: {get_platform_label(order.get('created_via', 'telegram'))}",
             ]
         ),
     ]
 
     if for_admin:
         admin_lines = [
-            "Ссылки для клиента:",
+            "РЎСЃС‹Р»РєРё РґР»СЏ РєР»РёРµРЅС‚Р°:",
             build_order_links_text(order),
-            f"Клиент подключён в: {get_order_sources_text(order)}",
-            f"ID клиентов:\n{get_order_binding_details(order)}",
+            f"РљР»РёРµРЅС‚ РїРѕРґРєР»СЋС‡С‘РЅ РІ: {get_order_sources_text(order)}",
+            f"ID РєР»РёРµРЅС‚РѕРІ:\n{get_order_binding_details(order)}",
         ]
         if order.get("completed_at"):
-            admin_lines.append(f"Завершён: {format_local_time(order['completed_at'])}")
+            admin_lines.append(f"Р—Р°РІРµСЂС€С‘РЅ: {format_local_time(order['completed_at'])}")
         blocks.append("\n".join(admin_lines))
     else:
-        customer_lines = ["Срок изготовления указан в оферте."]
+        customer_lines = ["РЎСЂРѕРє РёР·РіРѕС‚РѕРІР»РµРЅРёСЏ СѓРєР°Р·Р°РЅ РІ РѕС„РµСЂС‚Рµ."]
         if order.get("paid_amount", 0) < order.get("total_price", 0):
-            customer_lines.append("Если вам необходимо доплатить, нажмите кнопку «Связаться».")
+            customer_lines.append("Р•СЃР»Рё РІР°Рј РЅРµРѕР±С…РѕРґРёРјРѕ РґРѕРїР»Р°С‚РёС‚СЊ, РЅР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ В«РЎРІСЏР·Р°С‚СЊСЃСЏВ».")
         if order["status"] == "ready":
             if order["has_delivery"]:
                 customer_lines.append(
-                    "В ближайшее время мы напишем вам для уточнения вопроса доставки. Если нужно быстрее — нажмите «Связаться»."
+                    "Р’ Р±Р»РёР¶Р°Р№С€РµРµ РІСЂРµРјСЏ РјС‹ РЅР°РїРёС€РµРј РІР°Рј РґР»СЏ СѓС‚РѕС‡РЅРµРЅРёСЏ РІРѕРїСЂРѕСЃР° РґРѕСЃС‚Р°РІРєРё. Р•СЃР»Рё РЅСѓР¶РЅРѕ Р±С‹СЃС‚СЂРµРµ вЂ” РЅР°Р¶РјРёС‚Рµ В«РЎРІСЏР·Р°С‚СЊСЃСЏВ»."
                 )
             else:
                 customer_lines.append(
-                    "В ближайшее время мы напишем вам для уточнения вопроса самовывоза. Если нужно быстрее — нажмите «Связаться»."
+                    "Р’ Р±Р»РёР¶Р°Р№С€РµРµ РІСЂРµРјСЏ РјС‹ РЅР°РїРёС€РµРј РІР°Рј РґР»СЏ СѓС‚РѕС‡РЅРµРЅРёСЏ РІРѕРїСЂРѕСЃР° СЃР°РјРѕРІС‹РІРѕР·Р°. Р•СЃР»Рё РЅСѓР¶РЅРѕ Р±С‹СЃС‚СЂРµРµ вЂ” РЅР°Р¶РјРёС‚Рµ В«РЎРІСЏР·Р°С‚СЊСЃСЏВ»."
                 )
         if order["status"] == "awaiting_delivery" and order.get("delivery_planned_for"):
-            customer_lines.append(f"Доставка запланирована на {order['delivery_planned_for']}.")
+            customer_lines.append(f"Р”РѕСЃС‚Р°РІРєР° Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅР° РЅР° {order['delivery_planned_for']}.")
         if order["status"] == "completed":
-            customer_lines.append("Спасибо за заказ! Если понадобится ещё мебель — мы на связи.")
+            customer_lines.append("РЎРїР°СЃРёР±Рѕ Р·Р° Р·Р°РєР°Р·! Р•СЃР»Рё РїРѕРЅР°РґРѕР±РёС‚СЃСЏ РµС‰С‘ РјРµР±РµР»СЊ вЂ” РјС‹ РЅР° СЃРІСЏР·Рё.")
         blocks.append("\n".join(customer_lines))
 
     return "\n\n".join(blocks)
@@ -2028,9 +2046,9 @@ def send_public_welcome(platform: str, chat_id: str) -> None:
         platform,
         chat_id,
         (
-            "Привет! Это бот Культ Мебель для отслеживания заказов.\n\n"
-            "Если менеджер уже отправил вам персональную ссылку — откройте её, и бот покажет статус заказа.\n"
-            "Если ссылки ещё нет, напишите нам — поможем оформить заказ и ответим на вопросы."
+            "РџСЂРёРІРµС‚! Р­С‚Рѕ Р±РѕС‚ РљСѓР»СЊС‚ РњРµР±РµР»СЊ РґР»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ Р·Р°РєР°Р·РѕРІ.\n\n"
+            "Р•СЃР»Рё РјРµРЅРµРґР¶РµСЂ СѓР¶Рµ РѕС‚РїСЂР°РІРёР» РІР°Рј РїРµСЂСЃРѕРЅР°Р»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ вЂ” РѕС‚РєСЂРѕР№С‚Рµ РµС‘, Рё Р±РѕС‚ РїРѕРєР°Р¶РµС‚ СЃС‚Р°С‚СѓСЃ Р·Р°РєР°Р·Р°.\n"
+            "Р•СЃР»Рё СЃСЃС‹Р»РєРё РµС‰С‘ РЅРµС‚, РЅР°РїРёС€РёС‚Рµ РЅР°Рј вЂ” РїРѕРјРѕР¶РµРј РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р· Рё РѕС‚РІРµС‚РёРј РЅР° РІРѕРїСЂРѕСЃС‹."
         ),
         reply_markup=reply_markup,
     )
@@ -2047,15 +2065,15 @@ def send_admin_help(platform: str, chat_id: str) -> None:
         platform,
         chat_id,
         (
-            "Добро пожаловать в панель заказов Культ Мебель.\n\n"
-            "Вся работа ведётся в одном сообщении: открывай разделы кнопками ниже.\n\n"
-            "Доступно:\n"
-            "• /neworder — создать заказ\n"
-            "• /orders — открыть текущие заказы\n"
-            "• /catalog — каталог товаров\n"
-            "• /report — отчёт по периоду\n"
-            "• /cancel — отменить текущее действие\n\n"
-            f"Активные каналы бота: {', '.join(channels)}. Заказы синхронизируются между мессенджерами."
+            "Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ РІ РїР°РЅРµР»СЊ Р·Р°РєР°Р·РѕРІ РљСѓР»СЊС‚ РњРµР±РµР»СЊ.\n\n"
+            "Р’СЃСЏ СЂР°Р±РѕС‚Р° РІРµРґС‘С‚СЃСЏ РІ РѕРґРЅРѕРј СЃРѕРѕР±С‰РµРЅРёРё: РѕС‚РєСЂС‹РІР°Р№ СЂР°Р·РґРµР»С‹ РєРЅРѕРїРєР°РјРё РЅРёР¶Рµ.\n\n"
+            "Р”РѕСЃС‚СѓРїРЅРѕ:\n"
+            "вЂў /neworder вЂ” СЃРѕР·РґР°С‚СЊ Р·Р°РєР°Р·\n"
+            "вЂў /orders вЂ” РѕС‚РєСЂС‹С‚СЊ С‚РµРєСѓС‰РёРµ Р·Р°РєР°Р·С‹\n"
+            "вЂў /catalog вЂ” РєР°С‚Р°Р»РѕРі С‚РѕРІР°СЂРѕРІ\n"
+            "вЂў /report вЂ” РѕС‚С‡С‘С‚ РїРѕ РїРµСЂРёРѕРґСѓ\n"
+            "вЂў /cancel вЂ” РѕС‚РјРµРЅРёС‚СЊ С‚РµРєСѓС‰РµРµ РґРµР№СЃС‚РІРёРµ\n\n"
+            f"РђРєС‚РёРІРЅС‹Рµ РєР°РЅР°Р»С‹ Р±РѕС‚Р°: {', '.join(channels)}. Р—Р°РєР°Р·С‹ СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓСЋС‚СЃСЏ РјРµР¶РґСѓ РјРµСЃСЃРµРЅРґР¶РµСЂР°РјРё."
         ),
         inline_keyboard=build_admin_home_keyboard(),
     )
@@ -2065,7 +2083,7 @@ def send_admin_help(platform: str, chat_id: str) -> None:
 def parse_paid_amount(raw_value: str) -> int:
     amount = parse_rubles(raw_value)
     if amount <= 0:
-        raise ValueError("Сумма доплаты должна быть больше нуля.")
+        raise ValueError("РЎСѓРјРјР° РґРѕРїР»Р°С‚С‹ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РЅСѓР»СЏ.")
     return amount
 
 
@@ -2073,27 +2091,27 @@ def parse_paid_amount(raw_value: str) -> int:
 def parse_russian_period(raw_value: str) -> tuple[datetime, datetime]:
     parts = [part.strip().lower() for part in raw_value.split("_", maxsplit=1)]
     if len(parts) != 2 or not parts[0] or not parts[1]:
-        raise ValueError("Период нужно ввести в формате: 22 января 2025_1 сентября 2025")
+        raise ValueError("РџРµСЂРёРѕРґ РЅСѓР¶РЅРѕ РІРІРµСЃС‚Рё РІ С„РѕСЂРјР°С‚Рµ: 22 СЏРЅРІР°СЂСЏ 2025_1 СЃРµРЅС‚СЏР±СЂСЏ 2025")
 
     def parse_part(part: str) -> datetime:
-        match = re.fullmatch(r"(\d{1,2})\s+([а-яё]+)\s+(\d{4})", part)
+        match = re.fullmatch(r"(\d{1,2})\s+([Р°-СЏС‘]+)\s+(\d{4})", part)
         if not match:
-            raise ValueError("Период нужно ввести в формате: 22 января 2025_1 сентября 2025")
+            raise ValueError("РџРµСЂРёРѕРґ РЅСѓР¶РЅРѕ РІРІРµСЃС‚Рё РІ С„РѕСЂРјР°С‚Рµ: 22 СЏРЅРІР°СЂСЏ 2025_1 СЃРµРЅС‚СЏР±СЂСЏ 2025")
         day = int(match.group(1))
         month_label = match.group(2)
         year = int(match.group(3))
         month = RUSSIAN_MONTHS.get(month_label)
         if month is None:
-            raise ValueError(f"Не удалось распознать месяц «{month_label}».")
+            raise ValueError(f"РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ РјРµСЃСЏС† В«{month_label}В».")
         try:
             return datetime(year, month, day, tzinfo=LOCAL_TZ)
         except ValueError as exc:
-            raise ValueError("Проверь корректность дат в периоде.") from exc
+            raise ValueError("РџСЂРѕРІРµСЂСЊ РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ РґР°С‚ РІ РїРµСЂРёРѕРґРµ.") from exc
 
     start_dt = parse_part(parts[0]).replace(hour=0, minute=0, second=0, microsecond=0)
     end_dt = parse_part(parts[1]).replace(hour=23, minute=59, second=59, microsecond=999999)
     if end_dt < start_dt:
-        raise ValueError("Конечная дата периода не может быть раньше начальной.")
+        raise ValueError("РљРѕРЅРµС‡РЅР°СЏ РґР°С‚Р° РїРµСЂРёРѕРґР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РЅСЊС€Рµ РЅР°С‡Р°Р»СЊРЅРѕР№.")
     return start_dt, end_dt
 
 
@@ -2123,20 +2141,20 @@ def build_report_text(start_dt: datetime, end_dt: datetime) -> str:
             platform_summary[platform] += 1
 
     lines = [
-        "📊 Отчёт по архиву заказов",
-        f"Период: {start_dt.strftime('%Y-%m-%d')} — {end_dt.strftime('%Y-%m-%d')}",
+        "рџ“Љ РћС‚С‡С‘С‚ РїРѕ Р°СЂС…РёРІСѓ Р·Р°РєР°Р·РѕРІ",
+        f"РџРµСЂРёРѕРґ: {start_dt.strftime('%Y-%m-%d')} вЂ” {end_dt.strftime('%Y-%m-%d')}",
         "",
-        f"Всего заказов: {total_count}",
-        f"Активных: {active_count}",
-        f"Завершённых: {completed_count}",
-        f"Удалённых: {deleted_count}",
-        f"Сумма заказов: {format_price(total_sum)}",
-        f"Получено оплат: {format_price(total_paid)}",
-        f"Осталось получить: {format_price(total_due)}",
+        f"Р’СЃРµРіРѕ Р·Р°РєР°Р·РѕРІ: {total_count}",
+        f"РђРєС‚РёРІРЅС‹С…: {active_count}",
+        f"Р—Р°РІРµСЂС€С‘РЅРЅС‹С…: {completed_count}",
+        f"РЈРґР°Р»С‘РЅРЅС‹С…: {deleted_count}",
+        f"РЎСѓРјРјР° Р·Р°РєР°Р·РѕРІ: {format_price(total_sum)}",
+        f"РџРѕР»СѓС‡РµРЅРѕ РѕРїР»Р°С‚: {format_price(total_paid)}",
+        f"РћСЃС‚Р°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ: {format_price(total_due)}",
         "",
-        "По каналам создания:",
-        f"• Telegram: {platform_summary['telegram']}",
-        f"• MAX: {platform_summary['max']}",
+        "РџРѕ РєР°РЅР°Р»Р°Рј СЃРѕР·РґР°РЅРёСЏ:",
+        f"вЂў Telegram: {platform_summary['telegram']}",
+        f"вЂў MAX: {platform_summary['max']}",
     ]
     return "\n".join(lines)
 
@@ -2148,7 +2166,7 @@ def start_new_order_flow(platform: str, chat_id: str) -> None:
         send_admin_message(
             platform,
             chat_id,
-            "📚 Каталог пуст. Сначала добавь хотя бы один товар, затем можно будет создать заказ.",
+            "рџ“љ РљР°С‚Р°Р»РѕРі РїСѓСЃС‚. РЎРЅР°С‡Р°Р»Р° РґРѕР±Р°РІСЊ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ С‚РѕРІР°СЂ, Р·Р°С‚РµРј РјРѕР¶РЅРѕ Р±СѓРґРµС‚ СЃРѕР·РґР°С‚СЊ Р·Р°РєР°Р·.",
             inline_keyboard=build_catalog_list_keyboard(),
         )
         return
@@ -2157,7 +2175,7 @@ def start_new_order_flow(platform: str, chat_id: str) -> None:
     send_admin_message(
         platform,
         chat_id,
-        "Выбери товар из каталога для нового заказа:",
+        "Р’С‹Р±РµСЂРё С‚РѕРІР°СЂ РёР· РєР°С‚Р°Р»РѕРіР° РґР»СЏ РЅРѕРІРѕРіРѕ Р·Р°РєР°Р·Р°:",
         inline_keyboard=build_catalog_pick_keyboard(),
     )
 
@@ -2182,7 +2200,7 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
                 send_message(
                     platform,
                     chat_id,
-                    "Mini App готов. Нажмите кнопку ниже, чтобы открыть приложение внутри Telegram.",
+                    "Mini App РіРѕС‚РѕРІ. РќР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ РЅРёР¶Рµ, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ РІРЅСѓС‚СЂРё Telegram.",
                     reply_markup=build_telegram_mini_app_inline_keyboard(),
                 )
                 return
@@ -2190,8 +2208,8 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
                 platform,
                 chat_id,
                 (
-                    f"Локальный адрес Mini App: {get_local_mini_app_url()}\n"
-                    "Чтобы Mini App открывался прямо внутри Telegram, укажите публичный HTTPS URL в MINI_APP_PUBLIC_URL."
+                    f"Р›РѕРєР°Р»СЊРЅС‹Р№ Р°РґСЂРµСЃ Mini App: {get_local_mini_app_url()}\n"
+                    "Р§С‚РѕР±С‹ Mini App РѕС‚РєСЂС‹РІР°Р»СЃСЏ РїСЂСЏРјРѕ РІРЅСѓС‚СЂРё Telegram, СѓРєР°Р¶РёС‚Рµ РїСѓР±Р»РёС‡РЅС‹Р№ HTTPS URL РІ MINI_APP_PUBLIC_URL."
                 ),
             )
             return
@@ -2213,7 +2231,7 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
             send_message(
                 platform,
                 chat_id,
-                "Mini App готов. Нажмите кнопку ниже, чтобы открыть приложение внутри Telegram.",
+                "Mini App РіРѕС‚РѕРІ. РќР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ РЅРёР¶Рµ, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ РІРЅСѓС‚СЂРё Telegram.",
                 reply_markup=build_telegram_mini_app_inline_keyboard(),
             )
             return
@@ -2221,8 +2239,8 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
             platform,
             chat_id,
             (
-                f"Локальный адрес Mini App: {get_local_mini_app_url()}\n"
-                "Для запуска внутри Telegram нужен публичный HTTPS URL в MINI_APP_PUBLIC_URL."
+                f"Р›РѕРєР°Р»СЊРЅС‹Р№ Р°РґСЂРµСЃ Mini App: {get_local_mini_app_url()}\n"
+                "Р”Р»СЏ Р·Р°РїСѓСЃРєР° РІРЅСѓС‚СЂРё Telegram РЅСѓР¶РµРЅ РїСѓР±Р»РёС‡РЅС‹Р№ HTTPS URL РІ MINI_APP_PUBLIC_URL."
             ),
             force_new=True,
         )
@@ -2251,7 +2269,7 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
         send_admin_message(
             platform,
             chat_id,
-            "Введи период в формате: 22 января 2025_1 сентября 2025",
+            "Р’РІРµРґРё РїРµСЂРёРѕРґ РІ С„РѕСЂРјР°С‚Рµ: 22 СЏРЅРІР°СЂСЏ 2025_1 СЃРµРЅС‚СЏР±СЂСЏ 2025",
             inline_keyboard=build_prompt_keyboard(),
         )
         return
@@ -2261,7 +2279,7 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
         send_admin_message(
             platform,
             chat_id,
-            "🛑 Текущее действие отменено.",
+            "рџ›‘ РўРµРєСѓС‰РµРµ РґРµР№СЃС‚РІРёРµ РѕС‚РјРµРЅРµРЅРѕ.",
             inline_keyboard=build_admin_home_keyboard(),
         )
         return
@@ -2269,7 +2287,7 @@ def handle_command(platform: str, chat_id: str, text: str) -> None:
     send_admin_message(
         platform,
         chat_id,
-        "Неизвестная команда. Используй /neworder, /orders, /catalog, /report или /cancel.",
+        "РќРµРёР·РІРµСЃС‚РЅР°СЏ РєРѕРјР°РЅРґР°. РСЃРїРѕР»СЊР·СѓР№ /neworder, /orders, /catalog, /report РёР»Рё /cancel.",
         inline_keyboard=build_admin_home_keyboard(),
     )
 
@@ -2286,13 +2304,13 @@ def handle_public_start(platform: str, chat_id: str, payload: str) -> None:
         send_message(
             platform,
             chat_id,
-            "Заказ по этой ссылке не найден или уже удалён. Напишите нам, и мы поможем уточнить информацию.",
+            "Р—Р°РєР°Р· РїРѕ СЌС‚РѕР№ СЃСЃС‹Р»РєРµ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ. РќР°РїРёС€РёС‚Рµ РЅР°Рј, Рё РјС‹ РїРѕРјРѕР¶РµРј СѓС‚РѕС‡РЅРёС‚СЊ РёРЅС„РѕСЂРјР°С†РёСЋ.",
             reply_markup=build_public_keyboard(platform, chat_id),
         )
         return
 
     if link_customer_to_order(order, platform, chat_id):
-        append_history(order, f"Клиент открыл персональную ссылку в {get_platform_label(platform)} из чата {chat_id}.")
+        append_history(order, f"РљР»РёРµРЅС‚ РѕС‚РєСЂС‹Р» РїРµСЂСЃРѕРЅР°Р»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ РІ {get_platform_label(platform)} РёР· С‡Р°С‚Р° {chat_id}.")
         persist_order(order, "completed" if order["status"] == "completed" else "active")
 
     send_order_snapshot(platform, chat_id, order)
@@ -2313,7 +2331,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         send_admin_message(
             platform,
             chat_id,
-            "Используй /neworder, чтобы создать заказ, /orders — чтобы посмотреть список, или /catalog — чтобы открыть каталог.",
+            "РСЃРїРѕР»СЊР·СѓР№ /neworder, С‡С‚РѕР±С‹ СЃРѕР·РґР°С‚СЊ Р·Р°РєР°Р·, /orders вЂ” С‡С‚РѕР±С‹ РїРѕСЃРјРѕС‚СЂРµС‚СЊ СЃРїРёСЃРѕРє, РёР»Рё /catalog вЂ” С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РєР°С‚Р°Р»РѕРі.",
             inline_keyboard=build_admin_home_keyboard(),
         )
         return
@@ -2323,31 +2341,31 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
 
     if step == "awaiting_catalog_title":
         if not cleaned_text:
-            send_admin_message(platform, chat_id, "Наименование товара не может быть пустым.")
+            send_admin_message(platform, chat_id, "РќР°РёРјРµРЅРѕРІР°РЅРёРµ С‚РѕРІР°СЂР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј.")
             return
         if len(cleaned_text) > MAX_TITLE_LENGTH:
-            send_admin_message(platform, chat_id, f"Наименование слишком длинное. Лимит — {MAX_TITLE_LENGTH} символов.")
+            send_admin_message(platform, chat_id, f"РќР°РёРјРµРЅРѕРІР°РЅРёРµ СЃР»РёС€РєРѕРј РґР»РёРЅРЅРѕРµ. Р›РёРјРёС‚ вЂ” {MAX_TITLE_LENGTH} СЃРёРјРІРѕР»РѕРІ.")
             return
         set_conversation(actor_key(platform, chat_id), "awaiting_catalog_price", draft={"title": cleaned_text})
         send_admin_message(
             platform,
             chat_id,
-            "Теперь введи цену товара, например: 42000",
+            "РўРµРїРµСЂСЊ РІРІРµРґРё С†РµРЅСѓ С‚РѕРІР°СЂР°, РЅР°РїСЂРёРјРµСЂ: 42000",
             inline_keyboard=build_prompt_keyboard(),
         )
         return
 
     if step == "awaiting_catalog_price":
         if not cleaned_text:
-            send_admin_message(platform, chat_id, "Цена не может быть пустой.")
+            send_admin_message(platform, chat_id, "Р¦РµРЅР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚РѕР№.")
             return
         if len(cleaned_text) > MAX_PRICE_LENGTH:
-            send_admin_message(platform, chat_id, f"Цена слишком длинная. Лимит — {MAX_PRICE_LENGTH} символов.")
+            send_admin_message(platform, chat_id, f"Р¦РµРЅР° СЃР»РёС€РєРѕРј РґР»РёРЅРЅР°СЏ. Р›РёРјРёС‚ вЂ” {MAX_PRICE_LENGTH} СЃРёРјРІРѕР»РѕРІ.")
             return
         try:
             total_price = parse_rubles(cleaned_text)
         except ValueError as exc:
-            send_admin_message(platform, chat_id, f"⚠️ {exc}")
+            send_admin_message(platform, chat_id, f"вљ пёЏ {exc}")
             return
         draft = dict(state_for_chat["draft"])
         item = create_catalog_item(draft["title"], total_price)
@@ -2355,7 +2373,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         send_admin_message(
             platform,
             chat_id,
-            f"✅ Товар добавлен в каталог.\n\n#{item['id']} • {item['title']}\nЦена: {format_price(item['total_price'])}",
+            f"вњ… РўРѕРІР°СЂ РґРѕР±Р°РІР»РµРЅ РІ РєР°С‚Р°Р»РѕРі.\n\n#{item['id']} вЂў {item['title']}\nР¦РµРЅР°: {format_price(item['total_price'])}",
             inline_keyboard=build_catalog_list_keyboard(),
         )
         return
@@ -2363,7 +2381,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
     if step == "awaiting_notes":
         notes = "" if cleaned_text == "-" else cleaned_text
         if len(notes) > MAX_NOTES_LENGTH:
-            send_admin_message(platform, chat_id, f"Примечание слишком длинное. Лимит — {MAX_NOTES_LENGTH} символов.")
+            send_admin_message(platform, chat_id, f"РџСЂРёРјРµС‡Р°РЅРёРµ СЃР»РёС€РєРѕРј РґР»РёРЅРЅРѕРµ. Р›РёРјРёС‚ вЂ” {MAX_NOTES_LENGTH} СЃРёРјРІРѕР»РѕРІ.")
             return
         draft = dict(state_for_chat["draft"])
         draft["notes"] = notes
@@ -2400,20 +2418,20 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         order = find_order_by_id(int(state_for_chat["order_id"]))
         if not order:
             clear_conversation(actor_key(platform, chat_id))
-            send_admin_message(platform, chat_id, "Заказ не найден.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         try:
             amount = parse_paid_amount(cleaned_text)
         except ValueError as exc:
-            send_admin_message(platform, chat_id, f"⚠️ {exc}")
+            send_admin_message(platform, chat_id, f"вљ пёЏ {exc}")
             return
         add_payment(order, amount)
         clear_conversation(actor_key(platform, chat_id))
-        notify_customer_order_update(order, f"По заказу #{order['id']} отмечена новая оплата: {format_price(amount)}.")
+        notify_customer_order_update(order, f"РџРѕ Р·Р°РєР°Р·Сѓ #{order['id']} РѕС‚РјРµС‡РµРЅР° РЅРѕРІР°СЏ РѕРїР»Р°С‚Р°: {format_price(amount)}.")
         send_admin_message(
             platform,
             chat_id,
-            f"✅ Оплата обновлена.\n\n{format_admin_order_text(order)}",
+            f"вњ… РћРїР»Р°С‚Р° РѕР±РЅРѕРІР»РµРЅР°.\n\n{format_admin_order_text(order)}",
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2422,23 +2440,23 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         order = find_order_by_id(int(state_for_chat["order_id"]))
         if not order:
             clear_conversation(actor_key(platform, chat_id))
-            send_admin_message(platform, chat_id, "Заказ не найден.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         if not cleaned_text:
             send_admin_message(
                 platform,
                 chat_id,
-                "Укажи дату и время доставки, например: 20 января, 20:00",
+                "РЈРєР°Р¶Рё РґР°С‚Сѓ Рё РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё, РЅР°РїСЂРёРјРµСЂ: 20 СЏРЅРІР°СЂСЏ, 20:00",
                 inline_keyboard=build_prompt_keyboard(),
             )
             return
         set_delivery_schedule(order, cleaned_text)
         clear_conversation(actor_key(platform, chat_id))
-        notify_customer_order_update(order, f"По заказу #{order['id']} обновлён статус: Ожидание доставки.")
+        notify_customer_order_update(order, f"РџРѕ Р·Р°РєР°Р·Сѓ #{order['id']} РѕР±РЅРѕРІР»С‘РЅ СЃС‚Р°С‚СѓСЃ: РћР¶РёРґР°РЅРёРµ РґРѕСЃС‚Р°РІРєРё.")
         send_admin_message(
             platform,
             chat_id,
-            f"✅ Доставка запланирована.\n\n{format_admin_order_text(order)}",
+            f"вњ… Р”РѕСЃС‚Р°РІРєР° Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅР°.\n\n{format_admin_order_text(order)}",
             inline_keyboard=build_admin_order_keyboard(order),
         )
         return
@@ -2447,7 +2465,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
         try:
             start_dt, end_dt = parse_russian_period(cleaned_text)
         except ValueError as exc:
-            send_admin_message(platform, chat_id, f"⚠️ {exc}")
+            send_admin_message(platform, chat_id, f"вљ пёЏ {exc}")
             return
         clear_conversation(actor_key(platform, chat_id))
         send_admin_message(
@@ -2461,7 +2479,7 @@ def handle_text_message(platform: str, chat_id: str, text: str, message_id: str 
     send_admin_message(
         platform,
         chat_id,
-        "Используй /cancel и начни заново через /neworder.",
+        "РСЃРїРѕР»СЊР·СѓР№ /cancel Рё РЅР°С‡РЅРё Р·Р°РЅРѕРІРѕ С‡РµСЂРµР· /neworder.",
         inline_keyboard=build_admin_home_keyboard(),
     )
 
@@ -2473,8 +2491,8 @@ def notify_customer_order_completed(order: dict[str, Any]) -> None:
             binding["platform"],
             binding["chat_id"],
             (
-                "Спасибо за ваш заказ в Культ Мебель! ❤️\n\n"
-                f"{order['title']} отмечен как завершённый. Если понадобится помощь, мы всегда на связи."
+                "РЎРїР°СЃРёР±Рѕ Р·Р° РІР°С€ Р·Р°РєР°Р· РІ РљСѓР»СЊС‚ РњРµР±РµР»СЊ! вќ¤пёЏ\n\n"
+                f"{order['title']} РѕС‚РјРµС‡РµРЅ РєР°Рє Р·Р°РІРµСЂС€С‘РЅРЅС‹Р№. Р•СЃР»Рё РїРѕРЅР°РґРѕР±РёС‚СЃСЏ РїРѕРјРѕС‰СЊ, РјС‹ РІСЃРµРіРґР° РЅР° СЃРІСЏР·Рё."
             ),
             reply_markup=build_public_keyboard(binding["platform"], binding["chat_id"], order["token"]),
         )
@@ -2515,7 +2533,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         safe_answer_callback_query(platform, callback_id)
 
     if data == "public:socials":
-        safe_edit_or_send(platform, chat_id_str, message_id, "Соцсети Культ Мебель:", build_socials_keyboard())
+        safe_edit_or_send(platform, chat_id_str, message_id, "РЎРѕС†СЃРµС‚Рё РљСѓР»СЊС‚ РњРµР±РµР»СЊ:", build_socials_keyboard())
         return
 
     if data == "client:list":
@@ -2536,7 +2554,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
                 platform,
                 chat_id_str,
                 message_id,
-                "Не удалось открыть заказ. Если нужна помощь — напишите нам.",
+                "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ Р·Р°РєР°Р·. Р•СЃР»Рё РЅСѓР¶РЅР° РїРѕРјРѕС‰СЊ вЂ” РЅР°РїРёС€РёС‚Рµ РЅР°Рј.",
                 build_public_keyboard(platform, chat_id_str),
             )
             return
@@ -2557,7 +2575,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
                 platform,
                 chat_id_str,
                 message_id,
-                "Заказ больше недоступен. Напишите нам, и мы поможем уточнить информацию.",
+                "Р—Р°РєР°Р· Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРµРЅ. РќР°РїРёС€РёС‚Рµ РЅР°Рј, Рё РјС‹ РїРѕРјРѕР¶РµРј СѓС‚РѕС‡РЅРёС‚СЊ РёРЅС„РѕСЂРјР°С†РёСЋ.",
                 build_public_keyboard(platform, chat_id_str),
             )
             return
@@ -2590,7 +2608,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            "Введи период в формате: 22 января 2025_1 сентября 2025",
+            "Р’РІРµРґРё РїРµСЂРёРѕРґ РІ С„РѕСЂРјР°С‚Рµ: 22 СЏРЅРІР°СЂСЏ 2025_1 СЃРµРЅС‚СЏР±СЂСЏ 2025",
             inline_keyboard=build_prompt_keyboard(),
         )
         return
@@ -2600,7 +2618,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            "🛑 Текущее действие отменено.",
+            "рџ›‘ РўРµРєСѓС‰РµРµ РґРµР№СЃС‚РІРёРµ РѕС‚РјРµРЅРµРЅРѕ.",
             inline_keyboard=build_admin_home_keyboard(),
         )
         return
@@ -2614,7 +2632,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            "Введи название товара для каталога, например: Кровать 160х200",
+            "Р’РІРµРґРё РЅР°Р·РІР°РЅРёРµ С‚РѕРІР°СЂР° РґР»СЏ РєР°С‚Р°Р»РѕРіР°, РЅР°РїСЂРёРјРµСЂ: РљСЂРѕРІР°С‚СЊ 160С…200",
             inline_keyboard=build_prompt_keyboard(),
         )
         return
@@ -2623,12 +2641,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         item_id = int(data.split(":", maxsplit=2)[2])
         item = find_catalog_item_by_id(item_id)
         if not item:
-            send_admin_message(platform, chat_id_str, "Товар не найден.", inline_keyboard=build_catalog_list_keyboard())
+            send_admin_message(platform, chat_id_str, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ.", inline_keyboard=build_catalog_list_keyboard())
             return
         send_admin_message(
             platform,
             chat_id_str,
-            f"📦 Товар #{item['id']}\n{item['title']}\n\nЦена: {format_price(item['total_price'])}",
+            f"рџ“¦ РўРѕРІР°СЂ #{item['id']}\n{item['title']}\n\nР¦РµРЅР°: {format_price(item['total_price'])}",
             inline_keyboard=build_catalog_item_keyboard(item_id),
         )
         return
@@ -2637,12 +2655,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         item_id = int(data.split(":", maxsplit=2)[2])
         deleted = delete_catalog_item(item_id)
         if not deleted:
-            send_admin_message(platform, chat_id_str, "Товар не найден.", inline_keyboard=build_catalog_list_keyboard())
+            send_admin_message(platform, chat_id_str, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ.", inline_keyboard=build_catalog_list_keyboard())
             return
         send_admin_message(
             platform,
             chat_id_str,
-            "🗑 Товар удалён из каталога.",
+            "рџ—‘ РўРѕРІР°СЂ СѓРґР°Р»С‘РЅ РёР· РєР°С‚Р°Р»РѕРіР°.",
             inline_keyboard=build_catalog_list_keyboard(),
         )
         return
@@ -2651,7 +2669,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         item_id = int(data.split(":", maxsplit=2)[2])
         item = find_catalog_item_by_id(item_id)
         if not item:
-            send_admin_message(platform, chat_id_str, "Товар не найден.", inline_keyboard=build_catalog_pick_keyboard())
+            send_admin_message(platform, chat_id_str, "РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ.", inline_keyboard=build_catalog_pick_keyboard())
             return
         draft = {
             "catalog_item_id": item["id"],
@@ -2662,7 +2680,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         send_admin_message(
             platform,
             chat_id_str,
-            f"Товар выбран:\n{item['title']}\nЦена: {format_price(item['total_price'])}\n\nВыбери, сколько уже оплачено:",
+            f"РўРѕРІР°СЂ РІС‹Р±СЂР°РЅ:\n{item['title']}\nР¦РµРЅР°: {format_price(item['total_price'])}\n\nР’С‹Р±РµСЂРё, СЃРєРѕР»СЊРєРѕ СѓР¶Рµ РѕРїР»Р°С‡РµРЅРѕ:",
             inline_keyboard={
                 "inline_keyboard": build_payment_choice_keyboard()["inline_keyboard"] + build_cancel_keyboard()["inline_keyboard"]
             },
@@ -2674,7 +2692,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         percent = PAYMENT_OPTIONS.get(percent_key)
         state_for_chat = conversation_state.get(actor_key(platform, chat_id_str))
         if percent is None or not state_for_chat:
-            send_admin_message(platform, chat_id_str, "Не удалось выбрать оплату. Начни создание заказа заново.")
+            send_admin_message(platform, chat_id_str, "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹Р±СЂР°С‚СЊ РѕРїР»Р°С‚Сѓ. РќР°С‡РЅРё СЃРѕР·РґР°РЅРёРµ Р·Р°РєР°Р·Р° Р·Р°РЅРѕРІРѕ.")
             return
         draft = dict(state_for_chat.get("draft", {}))
         draft["paid_amount"] = round(draft["total_price"] * percent / 100)
@@ -2684,9 +2702,9 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
             chat_id_str,
             (
                 f"{draft['title']}\n"
-                f"Цена: {format_price(draft['total_price'])}\n"
-                f"Оплачено: {percent}% ({format_price(draft['paid_amount'])} из {format_price(draft['total_price'])})\n\n"
-                "Нужна доставка?"
+                f"Р¦РµРЅР°: {format_price(draft['total_price'])}\n"
+                f"РћРїР»Р°С‡РµРЅРѕ: {percent}% ({format_price(draft['paid_amount'])} РёР· {format_price(draft['total_price'])})\n\n"
+                "РќСѓР¶РЅР° РґРѕСЃС‚Р°РІРєР°?"
             ),
             inline_keyboard={
                 "inline_keyboard": build_delivery_choice_keyboard()["inline_keyboard"] + build_cancel_keyboard()["inline_keyboard"]
@@ -2697,7 +2715,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
     if data.startswith("create:delivery:"):
         state_for_chat = conversation_state.get(actor_key(platform, chat_id_str))
         if not state_for_chat:
-            send_admin_message(platform, chat_id_str, "Не удалось выбрать доставку. Начни создание заказа заново.")
+            send_admin_message(platform, chat_id_str, "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹Р±СЂР°С‚СЊ РґРѕСЃС‚Р°РІРєСѓ. РќР°С‡РЅРё СЃРѕР·РґР°РЅРёРµ Р·Р°РєР°Р·Р° Р·Р°РЅРѕРІРѕ.")
             return
         draft = dict(state_for_chat.get("draft", {}))
         draft["has_delivery"] = data.endswith(":yes")
@@ -2707,10 +2725,10 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
             chat_id_str,
             (
                 f"{draft['title']}\n"
-                f"Цена: {format_price(draft['total_price'])}\n"
-                f"Оплачено: {get_paid_text({'paid_amount': draft['paid_amount'], 'total_price': draft['total_price']})}\n"
-                f"Доставка: {'Да' if draft['has_delivery'] else 'Нет'}\n\n"
-                "Теперь отправь примечание. Если примечания нет — отправь одиночный символ -"
+                f"Р¦РµРЅР°: {format_price(draft['total_price'])}\n"
+                f"РћРїР»Р°С‡РµРЅРѕ: {get_paid_text({'paid_amount': draft['paid_amount'], 'total_price': draft['total_price']})}\n"
+                f"Р”РѕСЃС‚Р°РІРєР°: {'Р”Р°' if draft['has_delivery'] else 'РќРµС‚'}\n\n"
+                "РўРµРїРµСЂСЊ РѕС‚РїСЂР°РІСЊ РїСЂРёРјРµС‡Р°РЅРёРµ. Р•СЃР»Рё РїСЂРёРјРµС‡Р°РЅРёСЏ РЅРµС‚ вЂ” РѕС‚РїСЂР°РІСЊ РѕРґРёРЅРѕС‡РЅС‹Р№ СЃРёРјРІРѕР» -"
             ),
             inline_keyboard=build_prompt_keyboard(),
         )
@@ -2724,7 +2742,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         send_admin_message(
             platform,
@@ -2738,23 +2756,23 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         _, _, order_id_str, status_key = data.split(":", maxsplit=3)
         order = find_order_by_id(int(order_id_str))
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         allowed_statuses = get_status_keys(order["has_delivery"])
         if status_key not in allowed_statuses:
-            send_admin_message(platform, chat_id_str, "Этот статус недоступен для выбранного заказа.")
+            send_admin_message(platform, chat_id_str, "Р­С‚РѕС‚ СЃС‚Р°С‚СѓСЃ РЅРµРґРѕСЃС‚СѓРїРµРЅ РґР»СЏ РІС‹Р±СЂР°РЅРЅРѕРіРѕ Р·Р°РєР°Р·Р°.")
             return
         if status_key == "awaiting_delivery":
             set_conversation(actor_key(platform, chat_id_str), "awaiting_delivery_schedule", order_id=order["id"])
             send_admin_message(
                 platform,
                 chat_id_str,
-                "Укажи дату и время доставки, например: 20 января, 20:00",
+                "РЈРєР°Р¶Рё РґР°С‚Сѓ Рё РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё, РЅР°РїСЂРёРјРµСЂ: 20 СЏРЅРІР°СЂСЏ, 20:00",
                 inline_keyboard=build_prompt_keyboard(),
             )
             return
         update_order_status(order, status_key)
-        notify_customer_order_update(order, f"По заказу #{order['id']} обновлён статус: {get_status_label(status_key)}.")
+        notify_customer_order_update(order, f"РџРѕ Р·Р°РєР°Р·Сѓ #{order['id']} РѕР±РЅРѕРІР»С‘РЅ СЃС‚Р°С‚СѓСЃ: {get_status_label(status_key)}.")
         send_admin_message(
             platform,
             chat_id_str,
@@ -2767,12 +2785,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         update_delivery_flag(order, not order["has_delivery"])
         notify_customer_order_update(
             order,
-            f"По заказу #{order['id']} изменён способ получения: {'доставка' if order['has_delivery'] else 'самовывоз'}.",
+            f"РџРѕ Р·Р°РєР°Р·Сѓ #{order['id']} РёР·РјРµРЅС‘РЅ СЃРїРѕСЃРѕР± РїРѕР»СѓС‡РµРЅРёСЏ: {'РґРѕСЃС‚Р°РІРєР°' if order['has_delivery'] else 'СЃР°РјРѕРІС‹РІРѕР·'}.",
         )
         send_admin_message(
             platform,
@@ -2786,10 +2804,10 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         mark_fully_paid(order)
-        notify_customer_order_update(order, f"По заказу #{order['id']} отмечена полная оплата.")
+        notify_customer_order_update(order, f"РџРѕ Р·Р°РєР°Р·Сѓ #{order['id']} РѕС‚РјРµС‡РµРЅР° РїРѕР»РЅР°СЏ РѕРїР»Р°С‚Р°.")
         send_admin_message(
             platform,
             chat_id_str,
@@ -2802,13 +2820,13 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         set_conversation(actor_key(platform, chat_id_str), "awaiting_payment_add", order_id=order_id)
         send_admin_message(
             platform,
             chat_id_str,
-            "Введи сумму доплаты в рублях, например: 5000",
+            "Р’РІРµРґРё СЃСѓРјРјСѓ РґРѕРїР»Р°С‚С‹ РІ СЂСѓР±Р»СЏС…, РЅР°РїСЂРёРјРµСЂ: 5000",
             inline_keyboard=build_prompt_keyboard(),
         )
         return
@@ -2817,12 +2835,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         send_admin_message(
             platform,
             chat_id_str,
-            f"Завершить заказ #{order['id']}?\nПосле подтверждения клиент получит сообщение с благодарностью.",
+            f"Р—Р°РІРµСЂС€РёС‚СЊ Р·Р°РєР°Р· #{order['id']}?\nРџРѕСЃР»Рµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РєР»РёРµРЅС‚ РїРѕР»СѓС‡РёС‚ СЃРѕРѕР±С‰РµРЅРёРµ СЃ Р±Р»Р°РіРѕРґР°СЂРЅРѕСЃС‚СЊСЋ.",
             inline_keyboard=build_finish_confirmation_keyboard(order_id),
         )
         return
@@ -2831,15 +2849,15 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         complete_order(order)
         notify_customer_order_completed(order)
         send_admin_message(
             platform,
             chat_id_str,
-            f"✅ Заказ #{order['id']} завершён.",
-            inline_keyboard={"inline_keyboard": [[{"text": "К списку заказов", "callback_data": "admin:list"}]]},
+            f"вњ… Р—Р°РєР°Р· #{order['id']} Р·Р°РІРµСЂС€С‘РЅ.",
+            inline_keyboard={"inline_keyboard": [[{"text": "Рљ СЃРїРёСЃРєСѓ Р·Р°РєР°Р·РѕРІ", "callback_data": "admin:list"}]]},
         )
         return
 
@@ -2847,7 +2865,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         send_admin_message(
             platform,
@@ -2861,12 +2879,12 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         send_admin_message(
             platform,
             chat_id_str,
-            f"Удалить заказ #{order['id']} без возможности восстановления?",
+            f"РЈРґР°Р»РёС‚СЊ Р·Р°РєР°Р· #{order['id']} Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ?",
             inline_keyboard=build_delete_confirmation_keyboard(order_id),
         )
         return
@@ -2880,20 +2898,20 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
                     binding["platform"],
                     binding["chat_id"],
                     (
-                        f"Заказ #{order['id']} удалён из системы отслеживания.\n"
-                        "Если вы считаете, что это произошло без вашего уведомления, напишите нам по кнопке ниже."
+                        f"Р—Р°РєР°Р· #{order['id']} СѓРґР°Р»С‘РЅ РёР· СЃРёСЃС‚РµРјС‹ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ.\n"
+                        "Р•СЃР»Рё РІС‹ СЃС‡РёС‚Р°РµС‚Рµ, С‡С‚Рѕ СЌС‚Рѕ РїСЂРѕРёР·РѕС€Р»Рѕ Р±РµР· РІР°С€РµРіРѕ СѓРІРµРґРѕРјР»РµРЅРёСЏ, РЅР°РїРёС€РёС‚Рµ РЅР°Рј РїРѕ РєРЅРѕРїРєРµ РЅРёР¶Рµ."
                     ),
                     reply_markup=build_public_keyboard(binding["platform"], binding["chat_id"]),
                 )
         deleted = delete_order(order_id)
         if not deleted:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         send_admin_message(
             platform,
             chat_id_str,
-            f"🗑 Заказ #{order_id} удалён.",
-            inline_keyboard={"inline_keyboard": [[{"text": "К списку заказов", "callback_data": "admin:list"}]]},
+            f"рџ—‘ Р—Р°РєР°Р· #{order_id} СѓРґР°Р»С‘РЅ.",
+            inline_keyboard={"inline_keyboard": [[{"text": "Рљ СЃРїРёСЃРєСѓ Р·Р°РєР°Р·РѕРІ", "callback_data": "admin:list"}]]},
         )
         return
 
@@ -2901,7 +2919,7 @@ def handle_callback_action(platform: str, chat_id: str, message_id: str, data: s
         order_id = int(data.split(":", maxsplit=2)[2])
         order = find_order_by_id(order_id)
         if not order:
-            send_admin_message(platform, chat_id_str, "Заказ не найден или уже удалён.", inline_keyboard=build_orders_list_keyboard())
+            send_admin_message(platform, chat_id_str, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ РёР»Рё СѓР¶Рµ СѓРґР°Р»С‘РЅ.", inline_keyboard=build_orders_list_keyboard())
             return
         send_admin_message(
             platform,
@@ -3006,10 +3024,10 @@ def log_max_admin_candidates(update: dict[str, Any]) -> None:
     if cache_key in logged_max_admin_candidates:
         return
     logged_max_admin_candidates.add(cache_key)
-    console_print("🆔 MAX admin ID candidates detected:")
+    console_print("рџ†” MAX admin ID candidates detected:")
     console_print(f"   candidates: {', '.join(candidates)}")
     console_print(f"   current MAX_ADMIN_CHAT_ID: {MAX_ADMIN_CHAT_ID}")
-    console_print("   ↑ Возьми нужный ID из candidates и укажи его в .env как MAX_ADMIN_CHAT_ID")
+    console_print("   в†‘ Р’РѕР·СЊРјРё РЅСѓР¶РЅС‹Р№ ID РёР· candidates Рё СѓРєР°Р¶Рё РµРіРѕ РІ .env РєР°Рє MAX_ADMIN_CHAT_ID")
 
 
 def extract_matching_max_admin_actor_id(update: dict[str, Any]) -> str | None:
@@ -3063,7 +3081,7 @@ def handle_telegram_update(update: dict[str, Any]) -> None:
         return
 
     if is_admin("telegram", chat_id):
-        send_admin_message("telegram", str(chat_id), "Поддерживаются текстовые команды и сообщения.")
+        send_admin_message("telegram", str(chat_id), "РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ С‚РµРєСЃС‚РѕРІС‹Рµ РєРѕРјР°РЅРґС‹ Рё СЃРѕРѕР±С‰РµРЅРёСЏ.")
     else:
         send_public_welcome("telegram", str(chat_id))
 
@@ -3109,7 +3127,7 @@ def handle_max_update(update: dict[str, Any]) -> None:
         return
 
     if admin_actor_id:
-        send_admin_message("max", admin_actor_id, "Поддерживаются текстовые команды и сообщения.")
+        send_admin_message("max", admin_actor_id, "РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ С‚РµРєСЃС‚РѕРІС‹Рµ РєРѕРјР°РЅРґС‹ Рё СЃРѕРѕР±С‰РµРЅРёСЏ.")
     else:
         send_public_welcome("max", chat_id)
 
@@ -3166,7 +3184,7 @@ def initialize_telegram_profile() -> None:
     bot_profiles["telegram"]["username"] = result.get("username")
     bot_profiles["telegram"]["name"] = result.get("first_name")
     if not bot_profiles["telegram"]["username"]:
-        raise RuntimeError("У Telegram-бота не найден username. Укажи username через @BotFather.")
+        raise RuntimeError("РЈ Telegram-Р±РѕС‚Р° РЅРµ РЅР°Р№РґРµРЅ username. РЈРєР°Р¶Рё username С‡РµСЂРµР· @BotFather.")
 
 
 
@@ -3177,7 +3195,7 @@ def initialize_max_profile() -> None:
     bot_profiles["max"]["username"] = result.get("username")
     bot_profiles["max"]["name"] = result.get("first_name") or result.get("name")
     if not bot_profiles["max"]["username"]:
-        raise RuntimeError("У MAX-бота не найден username. Проверь настройки бота в MAX.")
+        raise RuntimeError("РЈ MAX-Р±РѕС‚Р° РЅРµ РЅР°Р№РґРµРЅ username. РџСЂРѕРІРµСЂСЊ РЅР°СЃС‚СЂРѕР№РєРё Р±РѕС‚Р° РІ MAX.")
 
 
 
@@ -3192,24 +3210,24 @@ def run_telegram_polling(stop_event: threading.Event) -> None:
                         state["telegram_last_update_id"] = update.get("update_id")
                         save_state()
                 except requests.exceptions.RequestException as exc:
-                    console_print(f"❌ Ошибка requests при обработке Telegram update {update.get('update_id')}: {exc}")
+                    console_print(f"вќЊ РћС€РёР±РєР° requests РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ Telegram update {update.get('update_id')}: {exc}")
                     break
                 except RuntimeError as exc:
-                    console_print(f"⚠️ Ошибка Telegram API при обработке update {update.get('update_id')}: {exc}")
+                    console_print(f"вљ пёЏ РћС€РёР±РєР° Telegram API РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ update {update.get('update_id')}: {exc}")
                     break
                 except Exception as exc:
-                    console_print(f"❌ Неожиданная ошибка при обработке Telegram update {update.get('update_id')}: {exc}")
+                    console_print(f"вќЊ РќРµРѕР¶РёРґР°РЅРЅР°СЏ РѕС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ Telegram update {update.get('update_id')}: {exc}")
                     break
         except requests.exceptions.Timeout:
-            console_print("⏳ Таймаут Telegram long polling, продолжаю работу...")
+            console_print("вЏі РўР°Р№РјР°СѓС‚ Telegram long polling, РїСЂРѕРґРѕР»Р¶Р°СЋ СЂР°Р±РѕС‚Сѓ...")
         except requests.exceptions.ConnectionError:
-            console_print("🌐 Ошибка соединения Telegram, повтор через несколько секунд...")
+            console_print("рџЊђ РћС€РёР±РєР° СЃРѕРµРґРёРЅРµРЅРёСЏ Telegram, РїРѕРІС‚РѕСЂ С‡РµСЂРµР· РЅРµСЃРєРѕР»СЊРєРѕ СЃРµРєСѓРЅРґ...")
             time.sleep(5)
         except requests.exceptions.RequestException as exc:
-            console_print(f"❌ Ошибка requests Telegram: {exc}")
+            console_print(f"вќЊ РћС€РёР±РєР° requests Telegram: {exc}")
             time.sleep(5)
         except RuntimeError as exc:
-            console_print(f"⚠️ Ошибка MAX API: {exc}")
+            console_print(f"вљ пёЏ РћС€РёР±РєР° MAX API: {exc}")
             time.sleep(5)
 
 
@@ -3225,30 +3243,30 @@ def run_max_polling(stop_event: threading.Event) -> None:
                         handle_max_update(update)
                 except requests.exceptions.RequestException as exc:
                     batch_processed = False
-                    console_print(f"❌ Ошибка requests при обработке MAX update {update.get('timestamp')}: {exc}")
+                    console_print(f"вќЊ РћС€РёР±РєР° requests РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ MAX update {update.get('timestamp')}: {exc}")
                     break
                 except RuntimeError as exc:
                     batch_processed = False
-                    console_print(f"⚠️ Ошибка MAX API при обработке update {update.get('timestamp')}: {exc}")
+                    console_print(f"вљ пёЏ РћС€РёР±РєР° MAX API РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ update {update.get('timestamp')}: {exc}")
                     break
                 except Exception as exc:
                     batch_processed = False
-                    console_print(f"❌ Неожиданная ошибка при обработке MAX update {update.get('timestamp')}: {exc}")
+                    console_print(f"вќЊ РќРµРѕР¶РёРґР°РЅРЅР°СЏ РѕС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ MAX update {update.get('timestamp')}: {exc}")
                     break
             if batch_processed and next_marker is not None:
                 with state_lock:
                     state["max_marker"] = next_marker
                     save_state()
         except requests.exceptions.Timeout:
-            console_print("⏳ Таймаут MAX long polling, продолжаю работу...")
+            console_print("вЏі РўР°Р№РјР°СѓС‚ MAX long polling, РїСЂРѕРґРѕР»Р¶Р°СЋ СЂР°Р±РѕС‚Сѓ...")
         except requests.exceptions.ConnectionError:
-            console_print("🌐 Ошибка соединения MAX, повтор через несколько секунд...")
+            console_print("рџЊђ РћС€РёР±РєР° СЃРѕРµРґРёРЅРµРЅРёСЏ MAX, РїРѕРІС‚РѕСЂ С‡РµСЂРµР· РЅРµСЃРєРѕР»СЊРєРѕ СЃРµРєСѓРЅРґ...")
             time.sleep(5)
         except requests.exceptions.RequestException as exc:
-            console_print(f"❌ Ошибка requests MAX: {exc}")
+            console_print(f"вќЊ РћС€РёР±РєР° requests MAX: {exc}")
             time.sleep(5)
         except RuntimeError as exc:
-            console_print(f"⚠️ Ошибка MAX API: {exc}")
+            console_print(f"вљ пёЏ РћС€РёР±РєР° MAX API: {exc}")
             time.sleep(5)
 
 
@@ -3274,16 +3292,16 @@ def main() -> None:
         console_print(f"Mini App public URL: {get_mini_app_public_url()}")
     else:
         console_print("MINI_APP_PUBLIC_URL is not set. Mini App is available locally, but Telegram will not open it inside the app yet.")
-    console_print("🤖 CULT_BOT запущен")
-    console_print(f"🕒 Часовой пояс: {TIMEZONE_NAME}")
-    console_print(f"🗃 Архив заказов: {ARCHIVE_DIR}")
+    console_print("рџ¤– CULT_BOT Р·Р°РїСѓС‰РµРЅ")
+    console_print(f"рџ•’ Р§Р°СЃРѕРІРѕР№ РїРѕСЏСЃ: {TIMEZONE_NAME}")
+    console_print(f"рџ—ѓ РђСЂС…РёРІ Р·Р°РєР°Р·РѕРІ: {ARCHIVE_DIR}")
     if platform_enabled("telegram"):
-        console_print(f"📨 Telegram admin chat_id={TELEGRAM_ADMIN_CHAT_ID}")
-        console_print(f"🔗 Telegram deep-link: @{bot_profiles['telegram']['username']}")
+        console_print(f"рџ“Ё Telegram admin chat_id={TELEGRAM_ADMIN_CHAT_ID}")
+        console_print(f"рџ”— Telegram deep-link: @{bot_profiles['telegram']['username']}")
     if platform_enabled("max"):
-        console_print(f"📨 MAX admin chat_id={MAX_ADMIN_CHAT_ID}")
-        console_print(f"🔗 MAX deep-link: @{bot_profiles['max']['username']}")
-        console_print("⚠️ MAX long polling подходит для разработки; для production документация MAX рекомендует Webhook.")
+        console_print(f"рџ“Ё MAX admin chat_id={MAX_ADMIN_CHAT_ID}")
+        console_print(f"рџ”— MAX deep-link: @{bot_profiles['max']['username']}")
+        console_print("вљ пёЏ MAX long polling РїРѕРґС…РѕРґРёС‚ РґР»СЏ СЂР°Р·СЂР°Р±РѕС‚РєРё; РґР»СЏ production РґРѕРєСѓРјРµРЅС‚Р°С†РёСЏ MAX СЂРµРєРѕРјРµРЅРґСѓРµС‚ Webhook.")
 
     stop_event = threading.Event()
     workers: list[threading.Thread] = []
@@ -3314,7 +3332,7 @@ def main() -> None:
         while True:
             time.sleep(LOOP_INTERVAL_SECONDS)
     except KeyboardInterrupt:
-        console_print("\n👋 Выход...")
+        console_print("\nрџ‘‹ Р’С‹С…РѕРґ...")
         stop_event.set()
         for worker in workers:
             worker.join(timeout=1)
