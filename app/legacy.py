@@ -1647,13 +1647,13 @@ def build_public_keyboard(platform: str, chat_id: str | None = None, include_ref
         order_mini_app_button = build_order_mini_app_button(platform, include_refresh_token)
         if order_mini_app_button is not None:
             keyboard.append([order_mini_app_button])
-        keyboard.append([{"text": "РћР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СѓСЃ", "callback_data": f"client:refresh:{include_refresh_token}"}])
+        keyboard.append([{"text": "Обновить статус", "callback_data": f"client:refresh:{include_refresh_token}"}])
     if chat_id and has_customer_orders(platform, chat_id):
-        keyboard.append([{"text": "РњРѕРё Р·Р°РєР°Р·С‹", "callback_data": "client:list"}])
+        keyboard.append([{"text": "Мои заказы", "callback_data": "client:list"}])
     keyboard.extend(
         [
-            [{"text": "РЎРІСЏР·Р°С‚СЊСЃСЏ", "url": CONTACT_URL}],
-            [{"text": "РЎРѕС†.СЃРµС‚Рё РљСѓР»СЊС‚ РњРµР±РµР»СЊ", "callback_data": "public:socials"}],
+            [{"text": "Связаться", "url": CONTACT_URL}],
+            [{"text": "Соцсети Культ Мебель", "callback_data": "public:socials"}],
         ]
     )
     return {"inline_keyboard": keyboard}
@@ -1663,15 +1663,15 @@ def build_public_keyboard(platform: str, chat_id: str | None = None, include_ref
 def build_customer_orders_text(platform: str, chat_id: str) -> str:
     customer_orders = find_orders_for_customer(platform, chat_id)
     if not customer_orders:
-        return "РЈ РІР°СЃ РїРѕРєР° РЅРµС‚ РїСЂРёРІСЏР·Р°РЅРЅС‹С… Р·Р°РєР°Р·РѕРІ. РћС‚РєСЂРѕР№С‚Рµ РїРµСЂСЃРѕРЅР°Р»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ, РєРѕС‚РѕСЂСѓСЋ РІР°Рј РѕС‚РїСЂР°РІРёР» РјРµРЅРµРґР¶РµСЂ."
+        return "У вас пока нет привязанных заказов. Откройте персональную ссылку, которую вам отправил менеджер."
 
     total_sum = sum(order["total_price"] for order in customer_orders)
     total_paid = sum(order["paid_amount"] for order in customer_orders)
     lines = [
-        "рџ“¦ Р’Р°С€Рё Р·Р°РєР°Р·С‹:",
-        f"Р’СЃРµРіРѕ Р·Р°РєР°Р·РѕРІ: {len(customer_orders)}",
-        f"РћР±С‰Р°СЏ СЃСѓРјРјР°: {format_price(total_sum)}",
-        f"РћРїР»Р°С‡РµРЅРѕ СЃСѓРјРјР°СЂРЅРѕ: {format_price(total_paid)}",
+        "Ваши заказы:",
+        f"Всего заказов: {len(customer_orders)}",
+        f"Общая сумма: {format_price(total_sum)}",
+        f"Оплачено суммарно: {format_price(total_paid)}",
     ]
     for order in customer_orders:
         lines.append(
@@ -2046,9 +2046,9 @@ def send_public_welcome(platform: str, chat_id: str) -> None:
         platform,
         chat_id,
         (
-            "РџСЂРёРІРµС‚! Р­С‚Рѕ Р±РѕС‚ РљСѓР»СЊС‚ РњРµР±РµР»СЊ РґР»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ Р·Р°РєР°Р·РѕРІ.\n\n"
-            "Р•СЃР»Рё РјРµРЅРµРґР¶РµСЂ СѓР¶Рµ РѕС‚РїСЂР°РІРёР» РІР°Рј РїРµСЂСЃРѕРЅР°Р»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ вЂ” РѕС‚РєСЂРѕР№С‚Рµ РµС‘, Рё Р±РѕС‚ РїРѕРєР°Р¶РµС‚ СЃС‚Р°С‚СѓСЃ Р·Р°РєР°Р·Р°.\n"
-            "Р•СЃР»Рё СЃСЃС‹Р»РєРё РµС‰С‘ РЅРµС‚, РЅР°РїРёС€РёС‚Рµ РЅР°Рј вЂ” РїРѕРјРѕР¶РµРј РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р· Рё РѕС‚РІРµС‚РёРј РЅР° РІРѕРїСЂРѕСЃС‹."
+            "Привет! Это бот Культ Мебель для отслеживания заказов.\n\n"
+            "Если менеджер уже отправил вам персональную ссылку — откройте её, и бот покажет статус заказа.\n"
+            "Если ссылки ещё нет, напишите нам — поможем оформить заказ и ответим на вопросы."
         ),
         reply_markup=reply_markup,
     )
