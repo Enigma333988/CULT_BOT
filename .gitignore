@@ -7,5 +7,3 @@ catalog.json
 bot_state.json
 archive/
 backup_*/
-*.bak_before_design
-.ftp-deploy-sync-state.json
