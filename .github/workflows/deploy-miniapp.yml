@@ -17,13 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy miniapp to SprintHost via SFTP
-        uses: appleboy/scp-action@v0.1.7
+      - name: Deploy miniapp to SprintHost via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.FTP_SERVER }}
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: 22
-          source: "miniapp/*,miniapp/.htaccess"
-          target: ${{ secrets.FTP_SERVER_DIR }}
-          strip_components: 1
+          protocol: ftp
+          port: 21
+          local-dir: ./miniapp/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          dangerous-clean-slate: true
