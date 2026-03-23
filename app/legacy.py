@@ -52,6 +52,8 @@ TELEGRAM_ADMIN_CHAT_ID = get_env_value("ADMIN_CHAT_ID")
 MAX_TOKEN = get_env_value("MAX_TOKEN")
 MAX_ADMIN_CHAT_ID = get_env_value("MAX_ADMIN_CHAT_ID")
 PROXY = get_env_value("PROXY")
+TELEGRAM_PROXY = get_env_value("TELEGRAM_PROXY", PROXY)
+MAX_PROXY = get_env_value("MAX_PROXY")
 TIMEZONE_NAME = get_env_value("TIMEZONE", "UTC")
 ORDERS_FILE = resolve_runtime_file("ORDERS_FILE", "orders.json")
 STATE_FILE = resolve_runtime_file("STATE_FILE", "bot_state.json")
@@ -75,6 +77,7 @@ MINI_APP_HOST = get_env_value("MINI_APP_HOST", "127.0.0.1")
 MINI_APP_PORT_RAW = get_env_value("MINI_APP_PORT", "8080")
 MINI_APP_PUBLIC_URL = get_env_value("MINI_APP_PUBLIC_URL")
 MINI_APP_CACHE_BUSTER = get_env_value("MINI_APP_CACHE_BUSTER")
+TELEGRAM_MENU_BUTTON_MODE = get_env_value("TELEGRAM_MENU_BUTTON_MODE", "web_app").strip().lower()
 PAYMENT_OPTIONS = {
     "0": 0,
     "50": 50,
@@ -130,11 +133,17 @@ if TELEGRAM_TOKEN and not TELEGRAM_ADMIN_CHAT_ID:
 if MAX_TOKEN and not MAX_ADMIN_CHAT_ID:
     raise ValueError("❌ Не найден MAX_ADMIN_CHAT_ID в .env")
 
-if PROXY:
-    parsed_proxy = urlparse(PROXY)
+for proxy_name, proxy_value in (
+    ("PROXY", PROXY),
+    ("TELEGRAM_PROXY", TELEGRAM_PROXY),
+    ("MAX_PROXY", MAX_PROXY),
+):
+    if not proxy_value:
+        continue
+    parsed_proxy = urlparse(proxy_value)
     if parsed_proxy.scheme.lower() not in ALLOWED_PROXY_SCHEMES:
         raise ValueError(
-            "❌ Некорректная схема PROXY. Используй http://, https://, socks5:// или socks5h://"
+            f"❌ Некорректная схема {proxy_name}. Используй http://, https://, socks5:// или socks5h://"
         )
 
 try:
@@ -150,6 +159,9 @@ if MINI_APP_PUBLIC_URL:
     if parsed_mini_app_url.scheme.lower() != "https" or not parsed_mini_app_url.netloc:
         raise ValueError("❌ MINI_APP_PUBLIC_URL должен быть корректным HTTPS URL.")
 
+if TELEGRAM_MENU_BUTTON_MODE not in {"web_app", "commands"}:
+    raise ValueError("❌ TELEGRAM_MENU_BUTTON_MODE должен быть web_app или commands.")
+
 try:
     LOCAL_TZ = ZoneInfo(TIMEZONE_NAME)
 except Exception as exc:
@@ -161,16 +173,21 @@ thread_local = threading.local()
 state_lock = threading.RLock()
 
 
-def get_http_session() -> requests.Session:
-    existing_session = getattr(thread_local, "session", None)
+def get_http_session(channel: str = "telegram") -> requests.Session:
+    if channel not in {"telegram", "max"}:
+        raise ValueError(f"Unknown HTTP channel: {channel}")
+
+    session_attr = f"session_{channel}"
+    existing_session = getattr(thread_local, session_attr, None)
     if existing_session is not None:
         return existing_session
 
     created_session = requests.Session()
     created_session.trust_env = False
-    if PROXY:
-        created_session.proxies.update({"http": PROXY, "https": PROXY})
-    thread_local.session = created_session
+    proxy = TELEGRAM_PROXY if channel == "telegram" else MAX_PROXY
+    if proxy:
+        created_session.proxies.update({"http": proxy, "https": proxy})
+    setattr(thread_local, session_attr, created_session)
     return created_session
 
 TELEGRAM_API_BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}" if TELEGRAM_TOKEN else None
@@ -563,7 +580,7 @@ def split_env_ids(raw_value: str | None) -> set[str]:
 def telegram_api_request(method: str, *, data: dict[str, Any] | None = None) -> dict[str, Any]:
     if not TELEGRAM_API_BASE_URL:
         raise RuntimeError("Telegram не настроен")
-    response = get_http_session().post(
+    response = get_http_session("telegram").post(
         f"{TELEGRAM_API_BASE_URL}/{method}",
         data=data or {},
         timeout=REQUEST_TIMEOUT_SECONDS,
@@ -609,8 +626,16 @@ def build_telegram_mini_app_inline_keyboard() -> dict[str, Any] | None:
 
 
 def register_telegram_mini_app_menu_button() -> None:
+    if not platform_enabled("telegram"):
+        return
+    if TELEGRAM_MENU_BUTTON_MODE == "commands":
+        telegram_api_request(
+            "setChatMenuButton",
+            data={"menu_button": json_dumps({"type": "commands"})},
+        )
+        return
     public_url = get_mini_app_public_url()
-    if not platform_enabled("telegram") or not public_url:
+    if not public_url:
         return
     telegram_api_request(
         "setChatMenuButton",
@@ -626,6 +651,35 @@ def register_telegram_mini_app_menu_button() -> None:
     )
 
 
+def register_telegram_commands() -> None:
+    if not platform_enabled("telegram"):
+        return
+
+    public_commands = [
+        {"command": "start", "description": "Открыть меню"},
+        {"command": "miniapp", "description": "Открыть приложение"},
+    ]
+    telegram_api_request("setMyCommands", data={"commands": json_dumps(public_commands)})
+
+    if TELEGRAM_ADMIN_CHAT_ID:
+        admin_commands = [
+            {"command": "start", "description": "Открыть меню"},
+            {"command": "neworder", "description": "Создать заказ"},
+            {"command": "orders", "description": "Список заказов"},
+            {"command": "catalog", "description": "Каталог товаров"},
+            {"command": "report", "description": "Отчёт за период"},
+            {"command": "cancel", "description": "Отменить действие"},
+            {"command": "miniapp", "description": "Открыть приложение"},
+        ]
+        telegram_api_request(
+            "setMyCommands",
+            data={
+                "scope": json_dumps({"type": "chat", "chat_id": int(TELEGRAM_ADMIN_CHAT_ID)}),
+                "commands": json_dumps(admin_commands),
+            },
+        )
+
+
 def max_api_request(
     method: str,
     path: str,
@@ -635,7 +689,7 @@ def max_api_request(
 ) -> dict[str, Any]:
     if not MAX_API_BASE_URL or not MAX_TOKEN:
         raise RuntimeError("MAX не настроен")
-    response = get_http_session().request(
+    response = get_http_session("max").request(
         method,
         f"{MAX_API_BASE_URL}{path}",
         params=params or None,
@@ -1011,6 +1065,64 @@ def get_status_label(status_key: str) -> str:
     return STATUS_LABELS.get(status_key, status_key)
 
 
+CUSTOMER_STATUS_LABELS = {
+    "awaiting": "В очереди",
+    "accepted": "В работе",
+    "production": "В работе",
+    "painting": "В работе",
+    "assembly": "На согласовании",
+    "ready": "Готов к выдаче / отправке",
+    "awaiting_delivery": "Готов к выдаче / отправке",
+    "in_transit": "В пути",
+    "completed": "Завершённый заказ",
+}
+
+CUSTOMER_STATUS_DESCRIPTIONS = {
+    "awaiting": "Заказ создан и ожидает подтверждения.",
+    "accepted": "Заказ подтвержден и поставлен в работу.",
+    "production": "Изготовление уже началось.",
+    "painting": "Идет этап покраски.",
+    "assembly": "Сборка завершится после вашего согласования.",
+    "ready": "Заказ готов к выдаче или отправке.",
+    "awaiting_delivery": "Заказ готов к выдаче или отправке.",
+    "in_transit": "Заказ в пути.",
+    "completed": "Заказ завершен. Спасибо за покупку!",
+}
+
+
+def get_customer_status_label(status_key: str) -> str:
+    return CUSTOMER_STATUS_LABELS.get(status_key, get_status_label(status_key))
+
+
+def get_customer_status_description(status_key: str) -> str:
+    return CUSTOMER_STATUS_DESCRIPTIONS.get(status_key, "")
+
+
+def build_customer_status_timeline(has_delivery: bool) -> list[dict[str, Any]]:
+    steps = [
+        {"key": "awaiting", "label": "В очереди"},
+        {"key": "accepted", "label": "В работе"},
+        {"key": "assembly", "label": "На согласовании"},
+        {"key": "ready", "label": "Готов к выдаче / отправке"},
+    ]
+    if has_delivery:
+        steps.append({"key": "in_transit", "label": "В пути"})
+    steps.append({"key": "completed", "label": "Завершённый заказ"})
+    return steps
+
+
+def get_customer_status_step(order: dict[str, Any]) -> tuple[int, int]:
+    timeline = build_customer_status_timeline(bool(order.get("has_delivery")))
+    status_key = order.get("status", "awaiting")
+    key_to_index = {item["key"]: index for index, item in enumerate(timeline, start=1)}
+    if status_key in {"production", "painting"}:
+        status_key = "accepted"
+    if status_key == "awaiting_delivery":
+        status_key = "ready"
+    step = key_to_index.get(status_key, 1)
+    return step, len(timeline)
+
+
 
 def format_price(value: int) -> str:
     return f"{value:,}".replace(",", ".") + " ₽"
@@ -1155,6 +1267,19 @@ def build_status_text(order: dict[str, Any]) -> str:
 
 def serialize_order_for_mini_app(order: dict[str, Any]) -> dict[str, Any]:
     current_step, total_steps = get_status_progress(order)
+    customer_step, customer_total_steps = get_customer_status_step(order)
+    customer_timeline_raw = build_customer_status_timeline(order["has_delivery"])
+    customer_timeline: list[dict[str, Any]] = []
+    for index, item in enumerate(customer_timeline_raw, start=1):
+        customer_timeline.append(
+            {
+                "key": item["key"],
+                "label": item["label"],
+                "index": index,
+                "done": index < customer_step,
+                "active": index == customer_step,
+            }
+        )
     status_keys = get_status_keys(order["has_delivery"]) + ["completed"]
     timeline: list[dict[str, Any]] = []
     for index, status_key in enumerate(status_keys, start=1):
@@ -1190,6 +1315,11 @@ def serialize_order_for_mini_app(order: dict[str, Any]) -> dict[str, Any]:
         "status_total_steps": total_steps,
         "progress_percent": round(current_step * 100 / max(total_steps, 1)),
         "status_timeline": timeline,
+        "customer_status_label": get_customer_status_label(order["status"]),
+        "customer_status_description": get_customer_status_description(order["status"]),
+        "customer_status_step": customer_step,
+        "customer_status_total_steps": customer_total_steps,
+        "customer_status_timeline": customer_timeline,
         "notes": order.get("notes") or "",
         "has_delivery": bool(order.get("has_delivery")),
         "delivery_mode_label": "Доставка" if order.get("has_delivery") else "Самовывоз",
@@ -1224,6 +1354,8 @@ def get_public_order_payload(token: str) -> dict[str, Any] | None:
     with state_lock:
         order = find_order_by_token(token)
         if order is None:
+            return None
+        if str(order.get("lifecycle_state") or "").strip().lower() == "deleted":
             return None
         return serialize_order_for_mini_app(order)
 
@@ -3133,6 +3265,7 @@ def main() -> None:
     local_mini_app_url = mini_app_server.start()
     initialize_telegram_profile()
     initialize_max_profile()
+    register_telegram_commands()
     register_telegram_mini_app_menu_button()
     with state_lock:
         sync_archives()
